@@ -3,13 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SM Cars</title>
-  <meta name="description" content="SM Cars - Премиум коли под наем" />
+  <title>SM Cars | Коли, мотори и товарни под наем в Шумен</title>
+  <meta name="description" content="SM Cars предлага коли, мотори и товарни превозни средства под наем в Шумен. Бърза резервация и коректни условия." />
+  <meta name="robots" content="index,follow,max-image-preview:large" />
+  <meta name="theme-color" content="#111827" />
+  <link rel="canonical" href="https://smcars.bg/" />
+  <meta property="og:locale" content="bg_BG" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SM Cars" />
+  <meta property="og:title" content="SM Cars | Коли, мотори и товарни под наем в Шумен" />
+  <meta property="og:description" content="Коли, мотори и товарни под наем в Шумен. Бърза резервация на +359 89 442 8975." />
+  <meta property="og:url" content="https://smcars.bg/" />
+  <meta property="og:image" content="https://smcars.bg/assets/hero-car.jpg" />
+  <meta property="og:image:alt" content="SM Cars - превозни средства под наем" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SM Cars | Коли, мотори и товарни под наем в Шумен" />
+  <meta name="twitter:description" content="Коли, мотори и товарни под наем в Шумен. Резервирай на +359 89 442 8975." />
+  <meta name="twitter:image" content="https://smcars.bg/assets/hero-car.jpg" />
+  <meta name="google-site-verification" content="fxZ4K-nEeuZUkSAETkllQGJMCNbbMFrHzBMTkB57tc0" />
   <link rel="icon" type="image/x-icon" href="assets/logo-dark.svg" />
   <link rel="stylesheet" href="styles.css" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": "SM Cars",
+      "url": "https://smcars.bg/",
+      "image": "https://smcars.bg/assets/hero-car.jpg",
+      "telephone": "+359894428975",
+      "email": "smcarsltd3@gmail.com",
+      "priceRange": "€€",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "бул. Велики Преслав 234, кв. Дивдядово",
+        "addressLocality": "Шумен",
+        "postalCode": "9700",
+        "addressCountry": "BG"
+      },
+      "areaServed": "BG",
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday"
+          ],
+          "opens": "08:00",
+          "closes": "20:00"
+        }
+      ]
+    }
+  </script>
 </head>
 <body>
-  <section class="min-h-screen bg-background flex items-center justify-center px-6 text-center">
+  <section class=" hidden min-h-screen bg-background flex items-center justify-center px-6 text-center">
     <div class="max-w-2xl" style="display: flex;flex-direction: column;text-align: center;gap: 1rem;align-items: center;margin: 0 auto;">
       <img src="assets/logo-light.svg" alt="SM Cars" class="h-10 hidden dark:block" />
       <h1 class="font-heading text-5xl md:text-7xl font-extrabold leading-[1.05] mb-4">
@@ -21,7 +73,7 @@
     </div>
   </section>
 
-  <div class="hidden min-h-screen bg-background">
+  <div class="min-h-screen bg-background">
     <header class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <div class="container mx-auto px-6 h-16 flex items-center justify-between">
         <a href="#" class="flex items-center">
@@ -30,7 +82,7 @@
         </a>
 
         <nav class="hidden md:flex items-center gap-8">
-          <a href="#fleet" class="text-sm hover:text-primary transition-colors">Автомобили</a>
+          <a href="#selection" class="text-sm hover:text-primary transition-colors">Автомобили</a>
           <a href="#location" class="text-sm hover:text-primary transition-colors">Локация и Контакти</a>
         </nav>
 
@@ -65,8 +117,8 @@
           <p class="text-lg max-w-md mb-8 animate-fade-up" style="animation-delay:0.3s">
             Разгледайте нашите автомобили, мотори и товарни превозни средства под наем
           </p>
-          <div class="flex gap-4 animate-fade-up" style="animation-delay:0.4s">
-            <a href="#fleet" class="px-7 py-3.5 rounded-md bg-primary text-primary-foreground font-heading font-semibold hover:brightness-110 transition-all">
+          <div class="flex flex-col sm:flex-row gap-4 animate-fade-up" style="animation-delay:0.4s">
+            <a href="#selection" class="px-7 py-3.5 rounded-md bg-primary text-primary-foreground font-heading font-semibold hover:brightness-110 transition-all">
               Избери превозно средство
             </a>
             <a href="#location" class="px-7 py-3.5 rounded-md border border-border text-foreground font-heading font-semibold hover:bg-secondary transition-all">
@@ -77,7 +129,7 @@
       </div>
     </section>
 
-    <section id="fleet" class="py-24 bg-secondary/30">
+    <section id="selection" class="py-24 bg-secondary/30">
       <div class="container mx-auto px-6">
         <div class="text-center mb-16">
           <h2 id="fleet-title" class="font-heading text-4xl md:text-5xl font-extrabold">
@@ -89,6 +141,16 @@
           <div id="category-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
         </div>
 
+        <div id="car-subcategory-view" class="hidden">
+          <div class="mb-8 flex flex-col md:flex-row md:items-center gap-4">
+            <button id="back-from-subcategories" class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border text-foreground font-heading font-semibold hover:bg-secondary transition-all" type="button">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              Назад към категории
+            </button>
+          </div>
+          <div id="car-subcategory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
+        </div>
+
         <div id="vehicles-view" class="hidden">
           <div class="mb-8 flex flex-col md:flex-row md:items-center gap-4">
             <button id="back-to-categories" class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border text-foreground font-heading font-semibold hover:bg-secondary transition-all" type="button">
@@ -96,6 +158,16 @@
               Назад
             </button>
           </div>
+
+          <div id="gearbox-filter-wrap" class="hidden mb-8">
+            <p class="text-base md:text-lg text-foreground font-heading font-semibold mb-3">Скоростна кутия:</p>
+            <div class="inline-flex flex-wrap gap-2">
+              <button data-gearbox-filter="all" class="gearbox-filter-btn px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-heading font-semibold transition-colors" type="button">Всички</button>
+              <button data-gearbox-filter="automatic" class="gearbox-filter-btn px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-heading font-semibold transition-colors" type="button">Автоматик</button>
+              <button data-gearbox-filter="manual" class="gearbox-filter-btn px-4 py-2 rounded-md bg-secondary text-secondary-foreground text-sm font-heading font-semibold transition-colors" type="button">Ръчна</button>
+            </div>
+          </div>
+
           <div id="fleet-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
           <div id="empty-state" class="hidden text-center rounded-lg border border-border bg-card p-10">
             <p class="font-heading text-2xl mb-2">Няма налични превозни средства</p>
@@ -105,7 +177,7 @@
       </div>
     </section>
 
-    <section id="location" class="py-24 bg-muted/30">
+    <section id="location" class="py-24 bg-muted/30 pt-4">
       <div class="container mx-auto px-6">
         <div class="text-center mb-16">
           <p class="text-primary font-heading font-semibold text-sm tracking-widest uppercase mb-3">
@@ -197,4 +269,3 @@
   <script src="script.js"></script>
 </body>
 </html>
-
