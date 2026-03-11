@@ -1,4 +1,5 @@
 const RESERVE_PHONE_HREF = "tel:+359894428975";
+const RESERVE_EMAIL_HREF = "mailto:smcarsltd3@gmail.com?subject=Запитване%20за%20резервация";
 // For manual testing, set e.g. "2026-12-05". Keep null for real current date.
 const PRICE_TEST_DATE = null;
 
@@ -399,14 +400,31 @@ function applySeasonalSurcharge(priceValue, surcharge) {
   return priceValue.replace(match[1], normalized);
 }
 
-function cardSpecBadge(icon, label, value) {
+function cardSpecBadge(icon, label, value, allowHtml = false) {
+  const renderedValue = allowHtml ? value : escapeHtml(value);
   return `<div class="flex items-center gap-2 bg-secondary/50 rounded-md px-3 py-2 transition-colors hover:bg-secondary">
     <span class="text-primary"><i data-lucide="${icon}" class="w-3.5 h-3.5"></i></span>
     <div class="flex flex-col">
       <span class="text-[10px] uppercase tracking-wider text-muted-foreground">${label}</span>
-      <span class="text-foreground text-xs font-medium">${escapeHtml(value)}</span>
+      <span class="text-foreground text-xs font-medium">${renderedValue}</span>
     </div>
   </div>`;
+}
+
+function getLuggageCount(vehicle) {
+  if (vehicle.mainCategory === "truck") return 4;
+  if (vehicle.mainCategory !== "car") return 0;
+  if (vehicle.carClass === "low") return 2;
+  if (vehicle.carClass === "middle") return 3;
+  if (vehicle.carClass === "high") return 4;
+  return 3;
+}
+
+function renderLuggageIcons(count) {
+  return `<div class="flex items-center justify-center gap-2 bg-secondary/50 rounded-md px-3 py-2">${Array.from(
+    { length: count },
+    () => '<i data-lucide="briefcase" class="w-4 h-4 text-primary"></i>',
+  ).join("")}</div>`;
 }
 
 function renderCategoryCard(item, index, dataKeyName) {
@@ -452,13 +470,14 @@ function renderPriceList(vehicle) {
 }
 
 function renderVehicleCard(vehicle, index) {
+  const luggageIcons = renderLuggageIcons(getLuggageCount(vehicle));
   const specsHtml =
     vehicle.mainCategory === "motor"
       ? ""
       : `<div class="grid grid-cols-2 gap-3 mb-4">
           ${cardSpecBadge("fuel", "Гориво", vehicle.fuel)}
           ${cardSpecBadge("gauge", "Кутия", vehicle.gearboxLabel)}
-          ${cardSpecBadge("calendar", "Година", vehicle.year)}
+          ${luggageIcons}
           ${cardSpecBadge("car", "Места", vehicle.seats)}
         </div>`;
 
@@ -481,9 +500,9 @@ function renderVehicleCard(vehicle, index) {
           ${renderPriceList(vehicle)}
         </div>
 
-        <div class="mt-auto pt-4 border-t border-border">
-          <a href="${RESERVE_PHONE_HREF}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
-            <i data-lucide="phone" class="w-4 h-4"></i>
+        <div class="mt-auto pt-4 border-t border-border flex justify-center">
+          <a href="#" data-open-reserve-modal="true" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
+            <i data-lucide="calendar" class="w-4 h-4"></i>
             Резервирай
           </a>
         </div>
@@ -661,11 +680,78 @@ function initGearboxFilters() {
   });
 }
 
+function initReserveModal() {
+  if (document.getElementById("reserve-modal")) return;
+
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    `<div id="reserve-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+      <button type="button" data-close-reserve-modal="true" class="absolute inset-0 bg-background/80 backdrop-blur-xl" aria-label="Затвори"></button>
+      <div class="relative w-full rounded-lg border border-border bg-card p-6 card-glow" style="max-width:420px;">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-heading text-xl font-bold text-foreground">Избери начин за резервация</h3>
+          <button type="button" data-close-reserve-modal="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="Затвори">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="flex flex-col gap-2">
+          <a href="${RESERVE_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
+            <i data-lucide="phone" class="w-4 h-4"></i>
+            Обади се
+          </a>
+          <a href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            Изпрати имейл
+          </a>
+        </div>
+      </div>
+    </div>`,
+  );
+
+  const modal = document.getElementById("reserve-modal");
+  if (!modal) return;
+
+  const openModal = () => {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.body.style.overflow = "hidden";
+    refreshIcons();
+  };
+
+  const closeModal = () => {
+    modal.classList.remove("flex");
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  };
+
+  document.addEventListener("click", (event) => {
+    const openTrigger = event.target.closest("[data-open-reserve-modal='true']");
+    if (openTrigger) {
+      event.preventDefault();
+      openModal();
+      return;
+    }
+
+    const closeTrigger = event.target.closest("[data-close-reserve-modal='true']");
+    if (closeTrigger) {
+      event.preventDefault();
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+      closeModal();
+    }
+  });
+}
+
 function init() {
   initThemeToggle();
   initFooterYear();
   initCategoryHandlers();
   initGearboxFilters();
+  initReserveModal();
   showMainCategories();
 }
 
