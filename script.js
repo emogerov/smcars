@@ -31,19 +31,19 @@ const carClasses = [
     key: "low",
     label: "Нисък клас",
     description: "Икономични и практични автомобили",
-    image: "assets/cars/ford-focus.jpg",
+    image: "assets/cars/toyota-iq.jpg",
   },
   {
     key: "middle",
     label: "Среден клас",
     description: "Баланс между комфорт и цена",
-    image: "assets/cars/vw-passat.jpg",
+    image: "assets/cars/toyota-avensis.jpg",
   },
   {
     key: "high",
     label: "Висок клас",
     description: "Премиум автомобили за максимален комфорт",
-    image: "assets/cars/mercedes-ml55.jpg",
+    image: "assets/cars/hyundai-kona.jpg",
   },
 ];
 
