@@ -1,7 +1,30 @@
+const SITE_LANG = document.documentElement.lang?.toLowerCase().startsWith("en") ? "en" : "bg";
+const IS_EN = SITE_LANG === "en";
 const RESERVE_PHONE_HREF = "tel:+359894428975";
-const RESERVE_EMAIL_HREF = "mailto:smcarsltd3@gmail.com?subject=Запитване%20за%20резервация";
+const RESERVE_EMAIL_HREF = IS_EN
+  ? "mailto:smcarsltd3@gmail.com?subject=Reservation%20request"
+  : "mailto:smcarsltd3@gmail.com?subject=Запитване%20за%20резервация";
 // For manual testing, set e.g. "2026-12-05". Keep null for real current date.
 const PRICE_TEST_DATE = null;
+
+const UI_TEXT = {
+  reserve: IS_EN ? "Reserve" : "Резервирай",
+  deposit: IS_EN ? "Deposit" : "Депозит",
+  fuel: IS_EN ? "Fuel" : "Гориво",
+  gearbox: IS_EN ? "Gearbox" : "Кутия",
+  seats: IS_EN ? "Seats" : "Места",
+  selectTypeTitleHtml: IS_EN
+    ? 'Choose a <span class="gold-gradient-text">vehicle type</span>'
+    : 'Избери тип <span class="gold-gradient-text">превозно средство</span>',
+  selectClassTitle: IS_EN ? "Choose a car class" : "Избери клас автомобили",
+  carsFallback: IS_EN ? "Cars" : "Автомобили",
+  carsSuffix: IS_EN ? "cars" : "автомобили",
+  vehiclesFallback: IS_EN ? "Vehicles" : "Превозни средства",
+  modalTitle: IS_EN ? "Choose booking method" : "Избери начин за резервация",
+  closeLabel: IS_EN ? "Close" : "Затвори",
+  callLabel: IS_EN ? "Call now" : "Обади се",
+  emailLabel: IS_EN ? "Send email" : "Изпрати имейл",
+};
 
 const categories = [
   {
@@ -47,6 +70,38 @@ const carClasses = [
     image: "assets/cars/hyundai-kona.jpg",
   },
 ];
+
+if (IS_EN) {
+  const categoryTranslations = {
+    car: { label: "Cars", description: "Passenger vehicles for rent" },
+    motor: { label: "Motorcycles", description: "Two-wheel rental vehicles" },
+    truck: { label: "Cargo Vans", description: "Commercial vehicles for business needs" },
+  };
+
+  const classTranslations = {
+    low: { label: "Low class", description: "Economic and practical vehicles" },
+    middle: { label: "Middle class", description: "Balance between comfort and price" },
+    high: { label: "High class", description: "Premium vehicles for maximum comfort" },
+  };
+
+  categories.forEach((category) => {
+    const translated = categoryTranslations[category.key];
+    if (translated) Object.assign(category, translated);
+  });
+
+  carClasses.forEach((carClass) => {
+    const translated = classTranslations[carClass.key];
+    if (translated) Object.assign(carClass, translated);
+  });
+}
+
+function resolveAssetPath(path) {
+  if (!IS_EN) return path;
+  if (path.startsWith("../") || path.startsWith("http")) return path;
+  return `../${path}`;
+}
+
+const BARREL_ICON_SRC = resolveAssetPath("assets/icons/barrel.svg");
 
 const carClassPolicies = {
   low: { depositText: "Без депозит", seasonalSurcharge: 3 },
@@ -357,6 +412,12 @@ const vehiclesData = [
   },
 ];
 
+[categories, carClasses, vehiclesData].forEach((collection) => {
+  collection.forEach((item) => {
+    if (item.image) item.image = resolveAssetPath(item.image);
+  });
+});
+
 let currentMainCategory = null;
 let currentCarClass = null;
 let currentGearboxFilter = "all";
@@ -368,6 +429,40 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function localizeFuel(value) {
+  if (!IS_EN) return value;
+  return value
+    .replaceAll("Бензин-Метан", "Petrol-CNG")
+    .replaceAll("Газ-Бензин", "LPG/Petrol")
+    .replaceAll("Бензин", "Petrol")
+    .replaceAll("Дизел", "Diesel")
+    .replaceAll("Ръчна", "Manual")
+    .replaceAll("Автоматик", "Automatic");
+}
+
+function localizeGearbox(gearbox) {
+  if (!IS_EN) return gearbox === "automatic" ? "Автоматик" : "Ръчна";
+  return gearbox === "automatic" ? "Automatic" : "Manual";
+}
+
+function localizePriceLabel(label) {
+  if (!IS_EN) return label;
+  return label
+    .replaceAll("часа", "hours")
+    .replaceAll("дена", "days")
+    .replaceAll("дни", "days");
+}
+
+function localizePriceValue(value) {
+  if (!IS_EN) return value;
+  return value.replaceAll("/ ден", "/ day").replaceAll("По договаряне", "By arrangement");
+}
+
+function localizeDepositText(value) {
+  if (!IS_EN) return value;
+  return value.replaceAll("Без депозит", "No deposit");
 }
 
 function refreshIcons() {
@@ -390,7 +485,7 @@ function isSeasonalPeriod(now = new Date()) {
 
 function applySeasonalSurcharge(priceValue, surcharge) {
   if (!surcharge || surcharge <= 0) return priceValue;
-  if (/по\s+договоряне/i.test(priceValue)) return priceValue;
+  if (/по\s+договоряне|by\s+arrangement/i.test(priceValue)) return priceValue;
   const match = priceValue.match(/(\d+(?:[.,]\d+)?)/);
   if (!match) return priceValue;
   const original = Number.parseFloat(match[1].replace(",", "."));
@@ -411,20 +506,48 @@ function cardSpecBadge(icon, label, value, allowHtml = false) {
   </div>`;
 }
 
-function getLuggageCount(vehicle) {
-  if (vehicle.mainCategory === "truck") return 4;
-  if (vehicle.mainCategory !== "car") return 0;
-  if (vehicle.carClass === "low") return 2;
-  if (vehicle.carClass === "middle") return 3;
-  if (vehicle.carClass === "high") return 4;
-  return 3;
+function getLuggageVisual(vehicle) {
+  const brand = (vehicle.brand || "").toLowerCase();
+  const model = (vehicle.model || "").toLowerCase();
+
+  const customByVehicle = [
+    { match: () => brand === "toyota" && model.startsWith("yaris"), value: { count: 3, icon: "briefcase", sizeClass: "w-4 h-4" } },
+    { match: () => brand === "ford" && model.startsWith("focus"), value: { count: 3, icon: "briefcase", sizeClass: "w-4 h-4" } },
+    { match: () => brand === "vw" && model.startsWith("passat"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
+    { match: () => brand === "citroen" && model.startsWith("c5"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
+    { match: () => brand === "toyota" && model.startsWith("avensis"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
+    { match: () => brand === "bmw", value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
+    { match: () => brand === "hyundai" && model.startsWith("kona"), value: { count: 4, icon: "briefcase", sizeClass: "w-4 h-4", withPlus: true } },
+    { match: () => brand === "mercedes" && model.includes("ml"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4", withPlus: true } },
+    { match: () => vehicle.mainCategory === "truck" && brand === "opel", value: { count: 6, icon: "barrel", sizeClass: "w-5 h-5" } },
+    { match: () => vehicle.mainCategory === "truck" && brand === "fiat", value: { count: 4, icon: "barrel", sizeClass: "w-5 h-5" } },
+  ];
+
+  const custom = customByVehicle.find((entry) => entry.match());
+  if (custom) return custom.value;
+
+  if (brand === "toyota" && model.startsWith("iq")) {
+    return { count: 2, icon: "shopping-bag", sizeClass: "w-3.5 h-3.5" };
+  }
+
+  if (vehicle.mainCategory === "truck") return { count: 4, icon: "barrel", sizeClass: "w-5 h-5" };
+  if (vehicle.mainCategory === "car" && vehicle.carClass === "low") return { count: 2, icon: "briefcase", sizeClass: "w-4 h-4" };
+  if (vehicle.mainCategory === "car" && vehicle.carClass === "middle") return { count: 3, icon: "briefcase", sizeClass: "w-4 h-4" };
+  if (vehicle.mainCategory === "car" && vehicle.carClass === "high") return { count: 4, icon: "briefcase", sizeClass: "w-4 h-4" };
+  return { count: 3, icon: "briefcase", sizeClass: "w-4 h-4" };
 }
 
-function renderLuggageIcons(count) {
+function renderLuggageIcons(vehicle) {
+  const { count, icon, sizeClass, withPlus } = getLuggageVisual(vehicle);
+  const plusHtml = withPlus ? '<i data-lucide="plus" class="w-3.5 h-3.5 text-primary"></i>' : "";
+  const iconHtml =
+    icon === "barrel"
+      ? `<img src="${BARREL_ICON_SRC}" alt="" class="${sizeClass}" />`
+      : `<i data-lucide="${icon}" class="${sizeClass} text-primary"></i>`;
   return `<div class="flex items-center justify-center gap-2 bg-secondary/50 rounded-md px-3 py-2">${Array.from(
     { length: count },
-    () => '<i data-lucide="briefcase" class="w-4 h-4 text-primary"></i>',
-  ).join("")}</div>`;
+    () => iconHtml,
+  ).join("")}${plusHtml}</div>`;
 }
 
 function renderCategoryCard(item, index, dataKeyName) {
@@ -455,8 +578,8 @@ function renderPriceList(vehicle) {
   const rows = vehicle.prices
     .map(
       (entry) => `<div class="flex items-center justify-between border-b border-border pb-2 text-sm">
-        <span class="text-muted-foreground">${escapeHtml(entry.label)}</span>
-        <span class="text-foreground font-medium">${escapeHtml(applySeasonalSurcharge(entry.value, surcharge))}</span>
+        <span class="text-muted-foreground">${escapeHtml(localizePriceLabel(entry.label))}</span>
+        <span class="text-foreground font-medium">${escapeHtml(localizePriceValue(applySeasonalSurcharge(entry.value, surcharge)))}</span>
       </div>`,
     )
     .join("");
@@ -464,21 +587,21 @@ function renderPriceList(vehicle) {
   if (!policy) return rows;
   return `${rows}
     <div class="flex items-center justify-between pb-2 text-sm">
-      <span class="text-muted-foreground">Депозит</span>
-      <span class="text-primary font-semibold">${escapeHtml(policy.depositText)}</span>
+      <span class="text-muted-foreground">${UI_TEXT.deposit}</span>
+      <span class="text-primary font-semibold">${escapeHtml(localizeDepositText(policy.depositText))}</span>
     </div>`;
 }
 
 function renderVehicleCard(vehicle, index) {
-  const luggageIcons = renderLuggageIcons(getLuggageCount(vehicle));
+  const luggageIcons = renderLuggageIcons(vehicle);
   const specsHtml =
     vehicle.mainCategory === "motor"
       ? ""
       : `<div class="grid grid-cols-2 gap-3 mb-4">
-          ${cardSpecBadge("fuel", "Гориво", vehicle.fuel)}
-          ${cardSpecBadge("gauge", "Кутия", vehicle.gearboxLabel)}
+          ${cardSpecBadge("fuel", UI_TEXT.fuel, localizeFuel(vehicle.fuel))}
+          ${cardSpecBadge("gauge", UI_TEXT.gearbox, localizeGearbox(vehicle.gearbox))}
           ${luggageIcons}
-          ${cardSpecBadge("car", "Места", vehicle.seats)}
+          ${cardSpecBadge("car", UI_TEXT.seats, vehicle.seats)}
         </div>`;
 
   return `<div class="animate-fade-up opacity-0" style="animation-delay:${0.08 * index}s;animation-fill-mode:forwards">
@@ -503,7 +626,7 @@ function renderVehicleCard(vehicle, index) {
         <div class="mt-auto pt-4 border-t border-border flex justify-center">
           <a href="#" data-open-reserve-modal="true" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
             <i data-lucide="calendar" class="w-4 h-4"></i>
-            Резервирай
+            ${UI_TEXT.reserve}
           </a>
         </div>
       </div>
@@ -513,26 +636,24 @@ function renderVehicleCard(vehicle, index) {
 
 function setTheme(theme) {
   const html = document.documentElement;
-  const sun = document.querySelector(".theme-sun");
-  const moon = document.querySelector(".theme-moon");
   const dark = theme === "dark";
   html.classList.toggle("dark", dark);
   localStorage.setItem("theme", theme);
-  if (sun && moon) {
-    sun.classList.toggle("hidden", !dark);
-    moon.classList.toggle("hidden", dark);
-  }
+  document.querySelectorAll(".theme-sun").forEach((sun) => sun.classList.toggle("hidden", !dark));
+  document.querySelectorAll(".theme-moon").forEach((moon) => moon.classList.toggle("hidden", dark));
 }
 
 function initThemeToggle() {
-  const button = document.getElementById("theme-toggle");
-  if (!button) return;
+  const buttons = Array.from(document.querySelectorAll("[data-theme-toggle]"));
+  if (!buttons.length) return;
   const savedTheme = localStorage.getItem("theme");
   const initialTheme = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
   setTheme(initialTheme);
-  button.addEventListener("click", () => {
-    const nextTheme = document.documentElement.classList.contains("dark") ? "light" : "dark";
-    setTheme(nextTheme);
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextTheme = document.documentElement.classList.contains("dark") ? "light" : "dark";
+      setTheme(nextTheme);
+    });
   });
 }
 
@@ -552,7 +673,7 @@ function showMainCategories() {
   currentCarClass = null;
   currentGearboxFilter = "all";
 
-  title.innerHTML = 'Избери тип <span class="gold-gradient-text">превозно средство</span>';
+  title.innerHTML = UI_TEXT.selectTypeTitleHtml;
   categoryView.classList.remove("hidden");
   subcategoryView.classList.add("hidden");
   vehiclesView.classList.add("hidden");
@@ -567,7 +688,7 @@ function showCarSubcategories() {
   const grid = document.getElementById("car-subcategory-grid");
   if (!title || !categoryView || !subcategoryView || !vehiclesView || !grid) return;
 
-  title.textContent = "Избери клас автомобили";
+  title.textContent = UI_TEXT.selectClassTitle;
   categoryView.classList.add("hidden");
   subcategoryView.classList.remove("hidden");
   vehiclesView.classList.add("hidden");
@@ -600,11 +721,11 @@ function showVehicles() {
   vehiclesView.classList.remove("hidden");
 
   if (currentMainCategory === "car") {
-    const classLabel = carClasses.find((item) => item.key === currentCarClass)?.label ?? "Автомобили";
-    title.textContent = `${classLabel} автомобили`;
+    const classLabel = carClasses.find((item) => item.key === currentCarClass)?.label ?? UI_TEXT.carsFallback;
+    title.textContent = `${classLabel} ${UI_TEXT.carsSuffix}`;
     filterWrap.classList.remove("hidden");
   } else {
-    const categoryLabel = categories.find((item) => item.key === currentMainCategory)?.label ?? "Превозни средства";
+    const categoryLabel = categories.find((item) => item.key === currentMainCategory)?.label ?? UI_TEXT.vehiclesFallback;
     title.textContent = categoryLabel;
     filterWrap.classList.add("hidden");
   }
@@ -680,28 +801,77 @@ function initGearboxFilters() {
   });
 }
 
+function initMobileMenu() {
+  const menu = document.getElementById("mobile-menu");
+  const overlay = document.getElementById("mobile-menu-overlay");
+  const toggle = document.getElementById("mobile-menu-toggle");
+  if (!menu || !overlay || !toggle) return;
+
+  const openMenu = () => {
+    overlay.classList.remove("hidden");
+    menu.classList.remove("hidden");
+    toggle.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+    refreshIcons();
+  };
+
+  const closeMenu = () => {
+    overlay.classList.add("hidden");
+    menu.classList.add("hidden");
+    toggle.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+  };
+
+  toggle.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (menu.classList.contains("hidden")) openMenu();
+    else closeMenu();
+  });
+
+  overlay.addEventListener("click", closeMenu);
+
+  menu.addEventListener("click", (event) => {
+    if (event.target.closest("[data-mobile-menu-close='true']")) {
+      closeMenu();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !menu.classList.contains("hidden")) {
+      closeMenu();
+    }
+  });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth >= 768 && !menu.classList.contains("hidden")) {
+      closeMenu();
+    }
+  });
+}
+
 function initReserveModal() {
   if (document.getElementById("reserve-modal")) return;
 
   document.body.insertAdjacentHTML(
     "beforeend",
     `<div id="reserve-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
-      <button type="button" data-close-reserve-modal="true" class="absolute inset-0 bg-background/80 backdrop-blur-xl" aria-label="Затвори"></button>
+      <button type="button" data-close-reserve-modal="true" class="absolute inset-0 bg-background/80 backdrop-blur-xl" aria-label="${UI_TEXT.closeLabel}"></button>
       <div class="relative w-full rounded-lg border border-border bg-card p-6 card-glow" style="max-width:420px;">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="font-heading text-xl font-bold text-foreground">Избери начин за резервация</h3>
-          <button type="button" data-close-reserve-modal="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="Затвори">
+          <h3 class="font-heading text-xl font-bold text-foreground">${UI_TEXT.modalTitle}</h3>
+          <button type="button" data-close-reserve-modal="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="${UI_TEXT.closeLabel}">
             <i data-lucide="x" class="w-4 h-4"></i>
           </button>
         </div>
         <div class="flex flex-col gap-2">
           <a href="${RESERVE_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
             <i data-lucide="phone" class="w-4 h-4"></i>
-            Обади се
+            ${UI_TEXT.callLabel}
           </a>
           <a href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="mail" class="w-4 h-4"></i>
-            Изпрати имейл
+            ${UI_TEXT.emailLabel}
           </a>
         </div>
       </div>
@@ -751,6 +921,7 @@ function init() {
   initFooterYear();
   initCategoryHandlers();
   initGearboxFilters();
+  initMobileMenu();
   initReserveModal();
   showMainCategories();
 }
