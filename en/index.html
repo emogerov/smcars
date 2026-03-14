@@ -87,6 +87,7 @@
         <nav class="hidden md:flex items-center gap-8">
           <a href="#selection" class="text-sm hover:text-primary transition-colors">Cars</a>
           <a href="#shuttle" class="text-sm hover:text-primary transition-colors">Airport Transfer</a>
+          <button type="button" data-open-terms-modal="true" class="text-sm hover:text-primary transition-colors">Terms</button>
           <a href="#location" class="text-sm hover:text-primary transition-colors">Location & Contact</a>
         </nav>
 
@@ -119,6 +120,7 @@
       <div class="container mx-auto px-6 py-4 flex flex-col gap-2">
         <a href="#selection" data-mobile-menu-close="true" class="px-4 py-2 rounded-md hover:bg-secondary transition-colors">Cars</a>
         <a href="#shuttle" data-mobile-menu-close="true" class="px-4 py-2 rounded-md hover:bg-secondary transition-colors">Airport Transfer</a>
+        <button type="button" data-open-terms-modal="true" data-mobile-menu-close="true" class="text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors">Terms</button>
         <a href="#location" data-mobile-menu-close="true" class="px-4 py-2 rounded-md hover:bg-secondary transition-colors">Location & Contact</a>
         <div class="pt-1 flex items-center gap-2">
           <button data-theme-toggle="true" data-mobile-menu-close="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors shrink-0" type="button" aria-label="Toggle theme">
@@ -155,6 +157,9 @@
             <a href="#selection" class="px-7 py-3.5 rounded-md bg-primary text-primary-foreground font-heading font-semibold hover:brightness-110 transition-all">
               Choose a vehicle
             </a>
+            <button type="button" data-open-terms-modal="true" class="px-7 py-3.5 rounded-md bg-secondary text-secondary-foreground font-heading font-semibold hover:bg-white hover:text-black transition-all">
+              Terms
+            </button>
             <a href="#location" class="px-7 py-3.5 rounded-md border border-border text-foreground font-heading font-semibold hover:bg-secondary transition-all">
               Find us
             </a>
@@ -385,6 +390,34 @@
         </div>
       </div>
     </section>
+
+    <div id="terms-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+      <button type="button" data-close-terms-modal="true" class="absolute inset-0 bg-background/80 backdrop-blur-xl" aria-label="Close"></button>
+      <div class="relative w-full rounded-lg border border-border bg-card p-6 card-glow" style="max-width:760px; max-height:min(80vh, 720px); overflow:auto;">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-heading text-xl font-bold text-foreground">Rental Terms</h3>
+          <button type="button" data-close-terms-modal="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="Close">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <ol class="list-decimal pl-5 space-y-3 text-sm md:text-base text-muted-foreground leading-relaxed">
+          <li>Valid ID card or passport.</li>
+          <li>Valid driving license.</li>
+          <li>The listed rental prices are for a 24-hour period.</li>
+          <li>No deposit is required for economy class cars.</li>
+          <li>The listed rental prices include third-party liability insurance, technical inspection and vignette fees for the Republic of Bulgaria. All other fees, fines, vignette fees outside Bulgaria and similar charges are paid by the renter.</li>
+          <li>Payment can be made in cash, by card via POS terminal or by bank transfer.</li>
+          <li>Before the vehicle is handed over, the full agreed rental amount must be paid. To reserve a vehicle, full payment or a deposit agreed between both parties (lessor and renter) is required.</li>
+          <li>The vehicle may be driven by the person listed in the rental contract plus one additional driver.</li>
+          <li>If the vehicle will be driven outside Bulgaria, this must be stated in the rental contract. In that case, a power of attorney is prepared for the driver and an additional fee of 100€ is charged.</li>
+          <li>In the event of any incident involving the vehicle, the renter must notify the authorities as well as the owning company. The renter must provide a police report or a formal complaint for the relevant case.</li>
+          <li>The vehicle is delivered to the renter with a full fuel tank and must be returned the same way. Otherwise, a fee of 110€ is charged.</li>
+          <li>The vehicle is delivered clean inside and out and must be returned in the same condition. Otherwise, a car wash fee of 20€ is charged.</li>
+          <li>Hand-over and return of the vehicle can be arranged at a time and place convenient for both parties after prior agreement, regardless of working hours.</li>
+          <li>SM CARS Ltd. reserves the right to terminate the contract immediately and apply related penalties in cases of improper conduct or negligent handling of our vehicles.</li>
+        </ol>
+      </div>
+    </div>
 
     <footer id="contact" class="py-12 border-t border-border bg-background">
       <div class="container mx-auto px-6">

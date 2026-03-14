@@ -87,6 +87,7 @@
         <nav class="hidden md:flex items-center gap-8">
           <a href="#selection" class="text-sm hover:text-primary transition-colors">Автомобили</a>
           <a href="#shuttle" class="text-sm hover:text-primary transition-colors">Трансфер до летище</a>
+          <button type="button" data-open-terms-modal="true" class="text-sm hover:text-primary transition-colors">Условия</button>
           <a href="#location" class="text-sm hover:text-primary transition-colors">Локация и Контакти</a>
         </nav>
 
@@ -119,6 +120,7 @@
       <div class="container mx-auto px-6 py-4 flex flex-col gap-2">
         <a href="#selection" data-mobile-menu-close="true" class="px-4 py-2 rounded-md hover:bg-secondary transition-colors">Автомобили</a>
         <a href="#shuttle" data-mobile-menu-close="true" class="px-4 py-2 rounded-md hover:bg-secondary transition-colors">Трансфер до летище</a>
+        <button type="button" data-open-terms-modal="true" data-mobile-menu-close="true" class="text-left px-4 py-2 rounded-md hover:bg-secondary transition-colors">Условия</button>
         <a href="#location" data-mobile-menu-close="true" class="px-4 py-2 rounded-md hover:bg-secondary transition-colors">Локация и Контакти</a>
         <div class="pt-1 flex items-center gap-2">
           <button data-theme-toggle="true" data-mobile-menu-close="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors shrink-0" type="button" aria-label="Смени тема">
@@ -155,6 +157,9 @@
             <a href="#selection" class="px-7 py-3.5 rounded-md bg-primary text-primary-foreground font-heading font-semibold hover:brightness-110 transition-all">
               Избери превозно средство
             </a>
+            <button type="button" data-open-terms-modal="true" class="px-7 py-3.5 rounded-md bg-secondary text-secondary-foreground font-heading font-semibold hover:bg-white hover:text-black transition-all">
+              Условия
+            </button>
             <a href="#location" class="px-7 py-3.5 rounded-md border border-border text-foreground font-heading font-semibold hover:bg-secondary transition-all">
               Намери ни
             </a>
@@ -385,6 +390,34 @@
         </div>
       </div>
     </section>
+
+    <div id="terms-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+      <button type="button" data-close-terms-modal="true" class="absolute inset-0 bg-background/80 backdrop-blur-xl" aria-label="Затвори"></button>
+      <div class="relative w-full rounded-lg border border-border bg-card p-6 card-glow" style="max-width:760px; max-height:min(80vh, 720px); overflow:auto;">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-heading text-xl font-bold text-foreground">Условия за наем</h3>
+          <button type="button" data-close-terms-modal="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="Затвори">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <ol class="list-decimal pl-5 space-y-3 text-sm md:text-base text-muted-foreground leading-relaxed">
+          <li>Валидна лична карта или паспорт.</li>
+          <li>Валидна шофьорска книжка.</li>
+          <li>Посочените цени за наем са за период от 24 часа.</li>
+          <li>За автомобили нисък клас не се заплаща депозит.</li>
+          <li>Посочените цени за наем включват ГО, ГТП и винетни такси за Република България. Всички останали такси, глоби, винетни такси извън България и т. н. са за сметка на наемателя.</li>
+          <li>Заплащането се извършва в брой, с карта чрез ПОС терминал или банков превод.</li>
+          <li>Преди предаване на превозното средство се заплаща цялата договорена сума по договора за наем. За резервация на автомобил е необходимо заплащане на цялата сума или капаро, договорено между двете страни (наемодател и наемател).</li>
+          <li>Превозното средство може да бъде управлявано от лицето, посочено в договора за наем, плюс още един допълнителен водач.</li>
+          <li>В случай че превозното средство ще бъде управлявано извън България, е необходимо това да бъде отразено в договора за наем. В този случай се изготвя пълномощно на водача и се заплаща допълнителна такса от 100€.</li>
+          <li>При настъпили каквито и да е инциденти, свързани с превозното средство, наемателят е длъжен да уведоми органите на реда, както и фирмата собственик. Наемателят е длъжен да представи протокол от полицията или жалба за съответния случай.</li>
+          <li>Превозното средство се предава на наемателя с пълен резервоар гориво и се връща по същия начин. В противен случай се дължи такса от 110€.</li>
+          <li>Превозното средство се предава измито отвън и отвътре и се връща в същия вид. В противен случай се заплаща такса автомивка от 20€.</li>
+          <li>Предаване и връщане на превозното средство може да се извърши в удобно и за двете страни време и място след предварителна уговорка, независимо от работното време.</li>
+          <li>Фирма СМ КАРС ЕООД си запазва правото на незабавно прекратяване на договора и неустойки, свързани с него, в случай на некоректно отношение или несъвестно стопанисване на нашите превозни средства.</li>
+        </ol>
+      </div>
+    </div>
 
     <footer id="contact" class="py-12 border-t border-border bg-background">
       <div class="container mx-auto px-6">

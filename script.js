@@ -916,6 +916,45 @@ function initReserveModal() {
   });
 }
 
+function initTermsModal() {
+  const modal = document.getElementById("terms-modal");
+  if (!modal) return;
+
+  const openModal = () => {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.body.style.overflow = "hidden";
+    refreshIcons();
+  };
+
+  const closeModal = () => {
+    modal.classList.remove("flex");
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  };
+
+  document.addEventListener("click", (event) => {
+    const openTrigger = event.target.closest("[data-open-terms-modal='true']");
+    if (openTrigger) {
+      event.preventDefault();
+      openModal();
+      return;
+    }
+
+    const closeTrigger = event.target.closest("[data-close-terms-modal='true']");
+    if (closeTrigger) {
+      event.preventDefault();
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+      closeModal();
+    }
+  });
+}
+
 function init() {
   initThemeToggle();
   initFooterYear();
@@ -923,6 +962,7 @@ function init() {
   initGearboxFilters();
   initMobileMenu();
   initReserveModal();
+  initTermsModal();
   showMainCategories();
 }
 
