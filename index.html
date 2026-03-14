@@ -135,7 +135,7 @@
       </div>
     </div>
 
-    <section class="relative h-[85vh] min-h-[600px] flex items-start md:items-center pt-24 md:pt-0">
+    <section class="relative min-h-[920px] md:h-[85vh] md:min-h-[600px] flex items-start md:items-center pt-24 md:pt-0">
       <div class="absolute inset-0">
         <video class="w-full h-full object-cover" autoplay muted loop playsinline preload="metadata" poster="assets/hero-car.jpg">
           <source src="assets/Homepage%20video.mp4" type="video/mp4" />
@@ -153,17 +153,27 @@
           <p class="text-lg max-w-md mb-8 animate-fade-up" style="animation-delay:0.3s">
             Разгледайте нашите автомобили, мотори и товарни превозни средства под наем
           </p>
-          <div class="flex flex-col sm:flex-row gap-4 animate-fade-up" style="animation-delay:0.4s">
-            <a href="#selection" class="px-7 py-3.5 rounded-md bg-primary text-primary-foreground font-heading font-semibold hover:brightness-110 transition-all">
-              Избери превозно средство
-            </a>
-            <button type="button" data-open-terms-modal="true" class="px-7 py-3.5 rounded-md bg-secondary text-secondary-foreground font-heading font-semibold hover:bg-white hover:text-black transition-all">
-              Условия
-            </button>
-            <a href="#location" class="px-7 py-3.5 rounded-md border border-border text-foreground font-heading font-semibold hover:bg-secondary transition-all">
-              Намери ни
-            </a>
+          <div class="flex flex-col gap-4 animate-fade-up" style="animation-delay:0.4s">
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <a href="#selection" class="px-7 py-3.5 rounded-md bg-primary text-primary-foreground font-heading font-semibold hover:brightness-110 transition-all">
+                Избери превозно средство
+              </a>
+              <a href="#shuttle" class="px-7 py-3.5 rounded-md bg-white text-black font-heading font-semibold border border-white/70 hover:brightness-95 transition-all">
+                Shuttle трансфер
+              </a>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <button type="button" data-open-terms-modal="true" class="px-7 py-3.5 rounded-md bg-secondary text-secondary-foreground font-heading font-semibold hover:bg-white hover:text-black transition-all">
+                Условия
+              </button>
+              <a href="#location" class="px-7 py-3.5 rounded-md border border-border text-foreground font-heading font-semibold hover:bg-secondary transition-all">
+                Намери ни
+              </a>
+            </div>
           </div>
+          <h2 class="font-heading text-[2.5rem] md:text-[3.5rem] font-extrabold leading-[1.05] mb-6 animate-fade-up" style="animation-delay:0.2s;margin-top:2.5rem;">
+            <span class="gold-gradient-text">Цени от <span style="color: white;">11€</span> на ден</span>
+          </h2>
         </div>
       </div>
     </section>
