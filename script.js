@@ -308,7 +308,7 @@ const vehiclesData = [
     image: "assets/cars/mercedes-ml55.jpg",
     prices: [
       { label: "24 часа", value: "200€" },
-      { label: "2-6 дена", value: "100€ / ден" },
+      { label: "2-6 дена", value: "110€ / ден" },
       { label: "7-14 дена", value: "80€ / ден" },
       { label: "14-30 дена", value: "60€ / ден" },
       { label: "30+ дена", value: "По договаряне" },
@@ -328,7 +328,7 @@ const vehiclesData = [
     image: "assets/cars/hyundai-kona.jpg",
     prices: [
       { label: "24 часа", value: "200€" },
-      { label: "2-6 дена", value: "100€ / ден" },
+      { label: "2-6 дена", value: "110€ / ден" },
       { label: "7-14 дена", value: "80€ / ден" },
       { label: "14-30 дена", value: "60€ / ден" },
       { label: "30+ дена", value: "По договаряне" },
