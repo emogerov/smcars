@@ -335,6 +335,27 @@ const vehiclesData = [
     ],
   },
   {
+    mainCategory: "car",
+    carClass: "high",
+    brand: "Toyota",
+    model: "Sequoia 5.7 V8",
+    year: 2020,
+    fuel: "Бензин",
+    engine: "5.7 V8",
+    gearbox: "automatic",
+    gearboxLabel: "Автоматик",
+    seats: "7+1",
+    image: "assets/cars/toyota-sequoia.jpeg",
+    depositText: "1000€",
+    prices: [
+      { label: "24 часа", value: "400€" },
+      { label: "2-6 дена", value: "200€ / ден" },
+      { label: "7-14 дена", value: "150€ / ден" },
+      { label: "14-30 дена", value: "110€ / ден" },
+      { label: "30+ дена", value: "По договаряне" },
+    ],
+  },
+  {
     mainCategory: "truck",
     brand: "Fiat",
     model: "Qubo 1.3 MJT",
@@ -516,6 +537,7 @@ function getLuggageVisual(vehicle) {
     { match: () => brand === "vw" && model.startsWith("passat"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
     { match: () => brand === "citroen" && model.startsWith("c5"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
     { match: () => brand === "toyota" && model.startsWith("avensis"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
+    { match: () => brand === "toyota" && model.startsWith("sequoia"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4", withPlus: true } },
     { match: () => brand === "bmw", value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4" } },
     { match: () => brand === "hyundai" && model.startsWith("kona"), value: { count: 4, icon: "briefcase", sizeClass: "w-4 h-4", withPlus: true } },
     { match: () => brand === "mercedes" && model.includes("ml"), value: { count: 5, icon: "briefcase", sizeClass: "w-4 h-4", withPlus: true } },
@@ -584,11 +606,12 @@ function renderPriceList(vehicle) {
     )
     .join("");
 
-  if (!policy) return rows;
+  const depositText = vehicle.depositText || (policy ? policy.depositText : "");
+  if (!depositText) return rows;
   return `${rows}
     <div class="flex items-center justify-between pb-2 text-sm">
       <span class="text-muted-foreground">${UI_TEXT.deposit}</span>
-      <span class="text-primary font-semibold">${escapeHtml(localizeDepositText(policy.depositText))}</span>
+      <span class="text-primary font-semibold">${escapeHtml(localizeDepositText(depositText))}</span>
     </div>`;
 }
 
