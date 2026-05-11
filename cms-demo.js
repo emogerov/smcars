@@ -21,7 +21,6 @@ async function bootstrapCmsContent() {
     if (heroCopy) {
       heroCopy.style.opacity = "1";
       heroCopy.style.visibility = "visible";
-      heroCopy.style.transform = "translateY(0)";
     }
     return;
   }
@@ -32,7 +31,6 @@ async function bootstrapCmsContent() {
     if (heroCopy) {
       heroCopy.style.opacity = "1";
       heroCopy.style.visibility = "visible";
-      heroCopy.style.transform = "translateY(0)";
     }
   });
 }
