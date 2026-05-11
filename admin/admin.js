@@ -52,6 +52,7 @@ function cacheElements() {
   elements.loginButton = document.getElementById("login-button");
   elements.logoutButtonSidebar = document.getElementById("logout-button-sidebar");
   elements.saveAllButton = document.getElementById("save-all-button");
+  elements.publishButton = document.getElementById("publish-button");
   elements.themeToggleButton = document.getElementById("theme-toggle-button");
   elements.sectionSaveButtons = Array.from(document.querySelectorAll("[data-save-section]"));
   elements.authMessage = document.getElementById("auth-message");
@@ -133,6 +134,7 @@ function bindEvents() {
   elements.loginForm?.addEventListener("submit", handleLogin);
   elements.logoutButtonSidebar?.addEventListener("click", handleLogout);
   elements.saveAllButton?.addEventListener("click", saveDraft);
+  elements.publishButton?.addEventListener("click", publishSite);
   elements.themeToggleButton?.addEventListener("click", toggleAdminTheme);
   elements.sectionSaveButtons.forEach((button) => button.addEventListener("click", saveDraft));
   elements.makeBackupButton?.addEventListener("click", createBackup);
@@ -532,11 +534,24 @@ function buildDraftContent() {
 async function saveDraft() {
   if (!state.session) return;
 
-  const nextRevision = (state.draft?.revision || 0) + 1;
+  const saved = await persistDraft({
+    nextRevision: (state.draft?.revision || 0) + 1,
+    showSuccessToast: "Промените са запазени.",
+    loadingText: "Запазване...",
+  });
+
+  if (saved) {
+    await loadSnapshots();
+  }
+}
+
+async function persistDraft({ nextRevision, showSuccessToast, loadingText }) {
+  if (!state.session) return false;
+
   const nextContent = buildDraftContent();
   nextContent.backups = state.backups;
 
-  setLoading(true, "Запазване...");
+  setLoading(true, loadingText);
   toggleSaveButtons(true);
 
   try {
@@ -552,7 +567,7 @@ async function saveDraft() {
 
     if (error) {
       showToast(`Неуспешно записване: ${error.message}`, true);
-      return;
+      return false;
     }
 
     await supabase.from("cms_change_log").insert({
@@ -562,7 +577,39 @@ async function saveDraft() {
       summary: `Запазена чернова, ревизия ${nextRevision}`,
     });
 
-    showToast("Промените са запазени.", false);
+    if (showSuccessToast) {
+      showToast(showSuccessToast, false);
+    }
+    return true;
+  } finally {
+    toggleSaveButtons(false);
+    setLoading(false);
+  }
+}
+
+async function publishSite() {
+  if (!state.session) return;
+
+  const nextRevision = (state.draft?.revision || 0) + 1;
+  const saved = await persistDraft({
+    nextRevision,
+    showSuccessToast: "",
+    loadingText: "Подготовка за публикуване...",
+  });
+
+  if (!saved) return;
+
+  setLoading(true, "Публикуване...");
+  toggleSaveButtons(true);
+
+  try {
+    const { error } = await supabase.rpc("publish_cms_draft");
+    if (error) {
+      showToast(`Неуспешно публикуване: ${error.message}`, true);
+      return;
+    }
+
+    showToast("Промените са публикувани.", false);
     await loadSnapshots();
   } finally {
     toggleSaveButtons(false);
@@ -680,6 +727,9 @@ async function restoreBackup(backupId) {
 
 function toggleSaveButtons(disabled) {
   elements.saveAllButton.disabled = disabled;
+  if (elements.publishButton) {
+    elements.publishButton.disabled = disabled;
+  }
   elements.sectionSaveButtons.forEach((button) => {
     button.disabled = disabled;
   });
