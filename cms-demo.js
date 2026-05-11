@@ -13,16 +13,27 @@ const isLocalDemoHost = ["127.0.0.1", "localhost"].includes(window.location.host
 bootstrapCmsContent();
 
 async function bootstrapCmsContent() {
+  const heroCopy = document.getElementById("cms-hero-copy");
   const content = await fetchActiveContent();
   if (!content) {
     document.documentElement.classList.remove("cms-hydrating");
     document.documentElement.classList.remove("cms-content-ready");
+    if (heroCopy) {
+      heroCopy.style.opacity = "1";
+      heroCopy.style.visibility = "visible";
+      heroCopy.style.transform = "translateY(0)";
+    }
     return;
   }
   applyCmsContent(content);
   requestAnimationFrame(() => {
     document.documentElement.classList.remove("cms-hydrating");
     document.documentElement.classList.add("cms-content-ready");
+    if (heroCopy) {
+      heroCopy.style.opacity = "1";
+      heroCopy.style.visibility = "visible";
+      heroCopy.style.transform = "translateY(0)";
+    }
   });
 }
 
