@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SM Cars Админ панел</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <link rel="icon" type="image/svg+xml" href="../assets/logo-dark.svg" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div id="page-top"></div>
+
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">
+          <img src="../assets/logo-light.svg" alt="SM Cars" class="sidebar-logo-image sidebar-logo-dark-theme" />
+          <img src="../assets/logo-dark.svg" alt="SM Cars" class="sidebar-logo-image sidebar-logo-light-theme" />
+        </div>
+        <h1>Админ панел</h1>
+      </div>
+
+      <nav class="sidebar-nav hidden" id="sidebar-nav">
+        <a href="#page-top" class="nav-link">Начало</a>
+        <a href="#section-hero" class="nav-link">Hero</a>
+        <a href="#section-settings" class="nav-link">Контакти</a>
+        <a href="#section-vehicles" class="nav-link">Превозни средства</a>
+        <a href="#section-seasonal" class="nav-link">Сезонни цени</a>
+        <a href="#section-shuttle" class="nav-link">Shuttle трансфер</a>
+        <a href="#section-terms" class="nav-link">Условия</a>
+        <a href="#section-history" class="nav-link">Архиви</a>
+        <a href="#section-instructions" class="nav-link">Инструкции</a>
+      </nav>
+
+      <div class="sidebar-actions hidden" id="sidebar-actions">
+        <a href="../index.html" class="button button-secondary button-block" id="open-site-link-sidebar">Виж сайта</a>
+        <button type="button" class="button button-secondary button-block button-icon-only" id="theme-toggle-button" aria-label="Смени режим">
+          <span class="theme-icon theme-icon-sun">☀</span>
+          <span class="theme-icon theme-icon-moon hidden">☾</span>
+        </button>
+        <button type="button" class="button button-secondary button-block" id="logout-button-sidebar">Изход</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <section class="panel auth-panel" id="auth-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Вход</p>
+            <h2>Влез в админ панела</h2>
+          </div>
+        </div>
+
+        <p class="lead">
+          Въведи администраторския имейл и парола, за да управляваш съдържанието на сайта.
+        </p>
+
+        <form id="login-form" class="auth-form">
+          <label class="field field-auth">
+            <span>Имейл</span>
+            <input id="email" name="email" type="email" autocomplete="username" value="nskilledlol@gmail.com" required />
+          </label>
+
+          <label class="field field-auth">
+            <span>Парола</span>
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+          </label>
+
+          <div class="actions auth-actions">
+            <button type="submit" class="button button-primary" id="login-button">Вход</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="dashboard hidden" id="dashboard">
+        <div class="panel panel-sticky" id="section-overview">
+          <div class="overview-bar">
+            <div class="summary-grid summary-grid-overview">
+              <article class="summary-card summary-card-padded">
+                <p class="summary-label">Последно публикуване</p>
+                <p class="summary-value" id="published-status">Няма данни</p>
+              </article>
+
+              <article class="summary-card summary-card-padded">
+                <p class="summary-label">Админ</p>
+                <p class="summary-value" id="user-email">-</p>
+              </article>
+            </div>
+
+            <div class="toolbar toolbar-main">
+              <a href="../index.html" class="button button-secondary" id="open-site-link">Виж сайта</a>
+              <button type="button" class="button button-primary" id="save-all-button">Запази всички</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="section-hero">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Hero</p>
+              <h2>Начален екран</h2>
+            </div>
+            <button type="button" class="button button-secondary save-section-button" data-save-section="hero">Запази секцията</button>
+          </div>
+
+          <div class="subpanel">
+            <div class="subpanel-header">
+              <p class="eyebrow">Фон</p>
+            </div>
+
+            <div class="form-grid">
+              <label class="field">
+                <span>Тип</span>
+                <select id="hero-media-type">
+                  <option value="video">Видео</option>
+                  <option value="image">Изображение</option>
+                </select>
+              </label>
+            </div>
+
+            <input id="hero-video" type="hidden" />
+            <input id="hero-image" type="hidden" />
+
+            <input id="hero-video-file" class="hidden" type="file" accept="video/mp4" />
+            <input id="hero-image-file" class="hidden" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+
+            <button type="button" class="media-picker" id="hero-media-picker" aria-label="Смени hero файл">
+              <video id="hero-media-preview-video" class="hero-media-preview hidden" muted autoplay loop playsinline></video>
+              <img id="hero-media-preview-image" class="hero-media-preview hidden" alt="" />
+              <div class="media-picker-overlay">
+                <span class="media-picker-icon">⇪</span>
+                <span id="hero-media-picker-text">Избери файл</span>
+              </div>
+              <p id="hero-media-preview-empty" class="helper compact media-picker-empty">Няма избран файл. Натисни, за да качиш.</p>
+            </button>
+          </div>
+
+          <div class="subpanel">
+            <div class="subpanel-header">
+              <p class="eyebrow">Текстове</p>
+            </div>
+
+            <div class="form-grid">
+              <label class="field">
+                <span>Заглавие (BG)</span>
+                <input id="hero-title-bg" type="text" />
+              </label>
+
+              <label class="field">
+                <span>Заглавие (EN)</span>
+                <input id="hero-title-en" type="text" />
+              </label>
+
+              <label class="field field-wide">
+                <span>Подзаглавие (BG)</span>
+                <textarea id="hero-subtitle-bg" rows="3"></textarea>
+              </label>
+
+              <label class="field field-wide">
+                <span>Подзаглавие (EN)</span>
+                <textarea id="hero-subtitle-en" rows="3"></textarea>
+              </label>
+
+              <label class="field">
+                <span>Текст за цените (BG)</span>
+                <input id="hero-price-bg" type="text" />
+              </label>
+
+              <label class="field">
+                <span>Текст за цените (EN)</span>
+                <input id="hero-price-en" type="text" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="section-settings">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Контакти</p>
+              <h2>Телефон, имейл, адрес и карта</h2>
+            </div>
+            <button type="button" class="button button-secondary save-section-button" data-save-section="contacts">Запази секцията</button>
+          </div>
+
+          <form class="form-grid">
+            <label class="field">
+              <span>Име на фирма</span>
+              <input id="company-name" type="text" />
+            </label>
+
+            <label class="field">
+              <span>Телефон</span>
+              <input id="phone" type="text" />
+            </label>
+
+            <label class="field">
+              <span>Имейл</span>
+              <input id="contact-email" type="email" />
+            </label>
+
+            <label class="field field-wide">
+              <span>Адрес (BG)</span>
+              <textarea id="address-bg" rows="3"></textarea>
+            </label>
+
+            <label class="field field-wide">
+              <span>Адрес (EN)</span>
+              <textarea id="address-en" rows="3"></textarea>
+            </label>
+
+            <label class="field field-wide">
+              <span>Google Maps embed линк</span>
+              <input id="maps-embed-url" type="text" />
+            </label>
+          </form>
+        </div>
+
+        <div class="panel" id="section-vehicles">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Превозни средства</p>
+              <h2>Управление на списъка</h2>
+            </div>
+            <div class="toolbar">
+              <button type="button" class="button button-secondary save-section-button" data-save-section="vehicles">Запази секцията</button>
+              <button type="button" class="button button-primary" id="add-vehicle-button">Добави превозно средство</button>
+            </div>
+          </div>
+
+          <div class="table-toolbar">
+            <label class="field field-inline">
+              <span>Категория</span>
+              <select id="vehicle-filter-category">
+                <option value="all">Всички</option>
+                <option value="car">Автомобили</option>
+                <option value="motor">Мотори</option>
+                <option value="truck">Товарни</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="history-table-wrap">
+            <table class="history-table vehicles-table">
+              <thead>
+                <tr>
+                  <th>Име</th>
+                  <th>Наличност</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="vehicle-table-body">
+                <tr>
+                  <td colspan="3" class="history-empty">Няма налични записи.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel" id="section-seasonal">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Сезонни цени</p>
+              <h2>Надценки по категории</h2>
+            </div>
+            <button type="button" class="button button-secondary save-section-button" data-save-section="seasonal">Запази секцията</button>
+          </div>
+
+          <p class="helper">
+            Надценката се добавя автоматично към цените за <span class="code">24 часа</span>, <span class="code">2-6 дена</span>,
+            <span class="code">7-14 дена</span> и <span class="code">14-30 дена</span>. Не засяга реда <span class="code">30+ дена</span>.
+            Един ред е един период. Формат: <span class="code">01-06 -&gt; 31-08</span>
+          </p>
+
+          <div class="seasonal-grid">
+            <div class="subpanel">
+              <div class="subpanel-header"><p class="eyebrow">Нисък клас</p></div>
+              <label class="field">
+                <span>Надценка на ден (€)</span>
+                <input id="season-low-surcharge" type="number" min="0" />
+              </label>
+              <label class="field">
+                <span>Периоди</span>
+                <textarea id="season-low-periods" rows="4"></textarea>
+              </label>
+            </div>
+
+            <div class="subpanel">
+              <div class="subpanel-header"><p class="eyebrow">Среден клас</p></div>
+              <label class="field">
+                <span>Надценка на ден (€)</span>
+                <input id="season-middle-surcharge" type="number" min="0" />
+              </label>
+              <label class="field">
+                <span>Периоди</span>
+                <textarea id="season-middle-periods" rows="4"></textarea>
+              </label>
+            </div>
+
+            <div class="subpanel">
+              <div class="subpanel-header"><p class="eyebrow">Висок клас</p></div>
+              <label class="field">
+                <span>Надценка на ден (€)</span>
+                <input id="season-high-surcharge" type="number" min="0" />
+              </label>
+              <label class="field">
+                <span>Периоди</span>
+                <textarea id="season-high-periods" rows="4"></textarea>
+              </label>
+            </div>
+
+            <div class="subpanel">
+              <div class="subpanel-header"><p class="eyebrow">Товарни</p></div>
+              <label class="field">
+                <span>Надценка на ден (€)</span>
+                <input id="season-truck-surcharge" type="number" min="0" />
+              </label>
+              <label class="field">
+                <span>Периоди</span>
+                <textarea id="season-truck-periods" rows="4"></textarea>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="section-shuttle">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Shuttle трансфер</p>
+              <h2>Летищни трансфери</h2>
+            </div>
+            <button type="button" class="button button-secondary save-section-button" data-save-section="shuttle">Запази секцията</button>
+          </div>
+
+          <p class="helper">
+            Един ред е един маршрут. Формат:
+            <span class="code">Летище BG | Airport EN | 200€ / 250€</span>
+          </p>
+
+          <label class="field">
+            <span>Маршрути</span>
+            <textarea id="shuttle-routes" rows="8"></textarea>
+          </label>
+        </div>
+
+        <div class="panel" id="section-terms">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Условия</p>
+            <h2>Текстове за модала</h2>
+          </div>
+          <button type="button" class="button button-secondary save-section-button" data-save-section="terms">Запази секцията</button>
+        </div>
+
+        <div class="double-grid">
+          <label class="field">
+            <span>Условия (BG)</span>
+              <textarea id="terms-bg" rows="16"></textarea>
+          </label>
+
+          <label class="field">
+            <span>Условия (EN)</span>
+              <textarea id="terms-en" rows="16"></textarea>
+          </label>
+        </div>
+        </div>
+
+        <div class="panel" id="section-history">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Архиви</p>
+              <h2>Запазени резервни копия</h2>
+            </div>
+            <button type="button" class="button button-secondary" id="make-backup-button">Направи архив</button>
+          </div>
+
+          <div class="history-table-wrap">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Потребител</th>
+                  <th>Ревизия</th>
+                  <th>Възстановяване</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <tr>
+                  <td colspan="4" class="history-empty">Все още няма архиви.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel" id="section-instructions">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Инструкции</p>
+              <h2>Как се работи с панела</h2>
+            </div>
+          </div>
+
+          <div class="instructions-list">
+            <div class="subpanel">
+              <div class="subpanel-header"><p class="eyebrow">Основен начин на работа</p></div>
+              <ol class="instructions-steps">
+                <li>Направи желаните промени в съответната секция.</li>
+                <li>Натисни <strong>Запази секцията</strong> за текущия блок или <strong>Запази всички</strong> за целия панел.</li>
+                <li>Натисни <strong>Виж сайта</strong>, за да провериш как изглеждат промените в localhost демото.</li>
+                <li>Ако искаш ръчна резервна точка, отвори <strong>Архиви</strong> и натисни <strong>Направи архив</strong>.</li>
+                <li>Ако нещо се обърка, използвай <strong>Възстанови</strong> от избран архив.</li>
+              </ol>
+            </div>
+
+            <div class="subpanel">
+              <div class="subpanel-header"><p class="eyebrow">Какво променя всяка секция</p></div>
+              <ul class="instructions-bullets">
+                <li><strong>Hero</strong> променя заглавията, ценовия текст и фона в началния екран. Смяната на видео или изображение става с натискане върху самия preview блок.</li>
+                <li><strong>Контакти</strong> променя телефон, имейл, адрес и Google Maps картата.</li>
+                <li><strong>Превозни средства</strong> променя наличности, снимки, цени и данни за отделните превозни средства. Нов запис се добавя едва след <strong>Запази записа</strong> в модала.</li>
+                <li><strong>Сезонни цени</strong> добавя надценки по категории за зададени периоди. Надценката се прилага към 24 часа, 2-6, 7-14 и 14-30 дни.</li>
+                <li><strong>Shuttle трансфер</strong> променя маршрутите и цените за летищните трансфери.</li>
+                <li><strong>Условия</strong> променя текста в модала с условия за наем.</li>
+                <li><strong>Архиви</strong> пази ръчни резервни копия на текущата чернова и позволява връщане към работещо състояние.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="vehicle-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close-vehicle-modal="true"></div>
+    <div class="modal-dialog">
+      <div class="panel modal-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Превозно средство</p>
+            <h2>Редакция на запис</h2>
+          </div>
+          <button type="button" class="button button-secondary" data-close-vehicle-modal="true">Отказ</button>
+        </div>
+
+        <div class="form-grid">
+          <label class="field field-wide">
+            <span>Име</span>
+            <input id="vehicle-name" type="text" />
+          </label>
+
+          <label class="field">
+            <span>Категория</span>
+            <select id="vehicle-main-category">
+              <option value="car">Автомобил</option>
+              <option value="motor">Мотор</option>
+              <option value="truck">Товарен</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Клас</span>
+            <select id="vehicle-car-class">
+              <option value="">-</option>
+              <option value="low">Нисък</option>
+              <option value="middle">Среден</option>
+              <option value="high">Висок</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Скоростна кутия</span>
+            <select id="vehicle-gearbox">
+              <option value="manual">Ръчна</option>
+              <option value="automatic">Автоматик</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Места</span>
+            <input id="vehicle-seats" type="text" placeholder="4+1" />
+          </label>
+
+          <label class="field">
+            <span>Гориво</span>
+            <input id="vehicle-fuel" type="text" />
+          </label>
+
+          <label class="field">
+            <span>Депозит</span>
+            <input id="vehicle-deposit" type="text" placeholder="100€ / Без депозит" />
+          </label>
+
+          <label class="field">
+            <span>Подредба</span>
+            <input id="vehicle-sort-order" type="number" min="1" />
+          </label>
+
+          <label class="field">
+            <span>Наличен</span>
+            <select id="vehicle-available">
+              <option value="true">Да</option>
+              <option value="false">Не</option>
+            </select>
+          </label>
+        </div>
+
+        <input id="vehicle-image" type="hidden" />
+        <input id="vehicle-image-file" class="hidden" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" />
+
+        <div class="subpanel">
+          <div class="subpanel-header">
+            <p class="eyebrow">Изображение</p>
+          </div>
+          <button type="button" class="media-picker media-picker-small" id="vehicle-image-picker" aria-label="Смени изображението">
+            <img id="vehicle-image-preview" alt="" class="vehicle-image-preview hidden" />
+            <div class="media-picker-overlay">
+              <span class="media-picker-icon">⇪</span>
+              <span>Смени изображението</span>
+            </div>
+            <p id="vehicle-image-preview-empty" class="helper compact media-picker-empty">Няма избрана снимка. Натисни, за да качиш.</p>
+          </button>
+        </div>
+
+        <div class="subpanel">
+          <div class="subpanel-header">
+            <p class="eyebrow">Цени</p>
+          </div>
+          <div class="price-grid">
+            <label class="field">
+              <span>24 часа</span>
+              <input id="price-24h" type="text" />
+            </label>
+            <label class="field">
+              <span>2-6 дена</span>
+              <input id="price-2-6" type="text" />
+            </label>
+            <label class="field">
+              <span>7-14 дена</span>
+              <input id="price-7-14" type="text" />
+            </label>
+            <label class="field">
+              <span>14-30 дена</span>
+              <input id="price-14-30" type="text" />
+            </label>
+            <label class="field">
+              <span>30+ дена</span>
+              <input id="price-30-plus" type="text" />
+            </label>
+          </div>
+        </div>
+
+        <div class="subpanel">
+          <div class="subpanel-header">
+            <p class="eyebrow">Багаж</p>
+          </div>
+          <div class="form-grid">
+            <label class="field">
+              <span>Брой икони</span>
+              <input id="vehicle-luggage-count" type="number" min="0" />
+            </label>
+
+            <label class="field">
+              <span>Тип икона</span>
+              <select id="vehicle-luggage-icon">
+                <option value="briefcase">Куфар</option>
+                <option value="shopping-bag">Малка чанта</option>
+                <option value="barrel">Бидон</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Плюс икона</span>
+              <select id="vehicle-luggage-plus">
+                <option value="false">Не</option>
+                <option value="true">Да</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="button button-danger" id="delete-vehicle-button">Премахни</button>
+          <button type="button" class="button button-primary" id="vehicle-modal-done-button">Запази записа</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loader-overlay hidden" id="loader-overlay" aria-live="polite" aria-busy="true">
+    <div class="loader-box">
+      <div class="loader-spinner"></div>
+      <p id="loader-text">Моля, изчакай...</p>
+    </div>
+  </div>
+
+  <div class="status-toast hidden" id="dashboard-message"></div>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

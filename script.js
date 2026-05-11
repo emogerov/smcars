@@ -26,7 +26,7 @@ const UI_TEXT = {
   emailLabel: IS_EN ? "Send email" : "Изпрати имейл",
 };
 
-const categories = [
+let categories = [
   {
     key: "car",
     label: "Автомобили",
@@ -50,7 +50,7 @@ const categories = [
   },
 ];
 
-const carClasses = [
+let carClasses = [
   {
     key: "low",
     label: "Нисък клас",
@@ -103,17 +103,24 @@ function resolveAssetPath(path) {
 
 const BARREL_ICON_SRC = resolveAssetPath("assets/icons/barrel.svg");
 
-const carClassPolicies = {
+let carClassPolicies = {
   low: { depositText: "Без депозит", seasonalSurcharge: 3 },
   middle: { depositText: "100€", seasonalSurcharge: 5 },
   high: { depositText: "300€", seasonalSurcharge: 10 },
 };
 
-const categoryPolicies = {
+let categoryPolicies = {
   truck: { depositText: "100€", seasonalSurcharge: 5 },
 };
 
-const vehiclesData = [
+let seasonalRules = [
+  { key: "low", label: "Нисък клас", surchargePerDay: 3, periods: ["01-06 -> 31-08", "01-12 -> 08-01"] },
+  { key: "middle", label: "Среден клас", surchargePerDay: 5, periods: ["01-06 -> 31-08", "01-12 -> 08-01"] },
+  { key: "high", label: "Висок клас", surchargePerDay: 10, periods: ["01-06 -> 31-08", "01-12 -> 08-01"] },
+  { key: "truck", label: "Товарни", surchargePerDay: 5, periods: ["01-06 -> 31-08", "01-12 -> 08-01"] },
+];
+
+let vehiclesData = [
   {
     mainCategory: "car",
     carClass: "low",
@@ -496,12 +503,45 @@ function getPricingDate() {
   return PRICE_TEST_DATE ? new Date(PRICE_TEST_DATE) : new Date();
 }
 
-function isSeasonalPeriod(now = new Date()) {
-  const month = now.getMonth() + 1;
-  const day = now.getDate();
-  const inSummer = (month === 6 && day >= 1) || month === 7 || (month === 8 && day <= 30);
-  const inWinter = month === 12 || (month === 1 && day <= 8);
-  return inSummer || inWinter;
+function getSeasonalRuleKey(vehicle) {
+  if (vehicle.mainCategory === "car") return vehicle.carClass || "";
+  if (vehicle.mainCategory === "truck") return "truck";
+  return "";
+}
+
+function getSeasonalSurcharge(vehicle, now = new Date()) {
+  const ruleKey = getSeasonalRuleKey(vehicle);
+  if (!ruleKey) return 0;
+  const rule = seasonalRules.find((entry) => entry.key === ruleKey);
+  if (!rule || !Array.isArray(rule.periods) || !rule.periods.length) return 0;
+  if (!isSeasonalPeriod(rule.periods, now)) return 0;
+  return Number(rule.surchargePerDay || 0);
+}
+
+function isSeasonalPeriod(periods, now = new Date()) {
+  return periods.some((period) => isDateInSeasonalRange(period, now));
+}
+
+function isDateInSeasonalRange(periodText, now = new Date()) {
+  const match = String(periodText || "").match(/(\d{2})-(\d{2})\s*->\s*(\d{2})-(\d{2})/);
+  if (!match) return false;
+
+  const startDay = Number(match[1]);
+  const startMonth = Number(match[2]);
+  const endDay = Number(match[3]);
+  const endMonth = Number(match[4]);
+  const currentMonth = now.getMonth() + 1;
+  const currentDay = now.getDate();
+
+  const currentValue = currentMonth * 100 + currentDay;
+  const startValue = startMonth * 100 + startDay;
+  const endValue = endMonth * 100 + endDay;
+
+  if (startValue <= endValue) {
+    return currentValue >= startValue && currentValue <= endValue;
+  }
+
+  return currentValue >= startValue || currentValue <= endValue;
 }
 
 function applySeasonalSurcharge(priceValue, surcharge) {
@@ -528,6 +568,15 @@ function cardSpecBadge(icon, label, value, allowHtml = false) {
 }
 
 function getLuggageVisual(vehicle) {
+  if (vehicle.luggage && Number.isFinite(Number(vehicle.luggage.count))) {
+    return {
+      count: Number(vehicle.luggage.count),
+      icon: vehicle.luggage.icon || "briefcase",
+      sizeClass: vehicle.luggage.sizeClass || (vehicle.luggage.icon === "barrel" ? "w-5 h-5" : "w-4 h-4"),
+      withPlus: Boolean(vehicle.luggage.withPlus),
+    };
+  }
+
   const brand = (vehicle.brand || "").toLowerCase();
   const model = (vehicle.model || "").toLowerCase();
 
@@ -595,7 +644,7 @@ function renderPriceList(vehicle) {
     vehicle.mainCategory === "car"
       ? carClassPolicies[vehicle.carClass]
       : categoryPolicies[vehicle.mainCategory] || null;
-  const surcharge = policy && isSeasonalPeriod(getPricingDate()) ? policy.seasonalSurcharge : 0;
+  const surcharge = getSeasonalSurcharge(vehicle, getPricingDate());
 
   const rows = vehicle.prices
     .map(
@@ -690,7 +739,8 @@ function showMainCategories() {
   const categoryView = document.getElementById("category-view");
   const subcategoryView = document.getElementById("car-subcategory-view");
   const vehiclesView = document.getElementById("vehicles-view");
-  if (!title || !categoryView || !subcategoryView || !vehiclesView) return;
+  const categoryGrid = document.getElementById("category-grid");
+  if (!title || !categoryView || !subcategoryView || !vehiclesView || !categoryGrid) return;
 
   currentMainCategory = null;
   currentCarClass = null;
@@ -700,6 +750,7 @@ function showMainCategories() {
   categoryView.classList.remove("hidden");
   subcategoryView.classList.add("hidden");
   vehiclesView.classList.add("hidden");
+  categoryGrid.innerHTML = categories.map((item, index) => renderCategoryCard(item, index, "category-key")).join("");
   refreshIcons();
 }
 
@@ -753,13 +804,17 @@ function showVehicles() {
     filterWrap.classList.add("hidden");
   }
 
-  let items = vehiclesData.filter((vehicle) => vehicle.mainCategory === currentMainCategory);
+  let items = vehiclesData
+    .filter((vehicle) => vehicle.mainCategory === currentMainCategory)
+    .filter((vehicle) => vehicle.isAvailable !== false);
   if (currentMainCategory === "car") {
     items = items.filter((vehicle) => vehicle.carClass === currentCarClass);
     if (currentGearboxFilter !== "all") {
       items = items.filter((vehicle) => vehicle.gearbox === currentGearboxFilter);
     }
   }
+
+  items = items.sort((left, right) => (left.sortOrder || 0) - (right.sortOrder || 0));
 
   if (items.length === 0) {
     fleetGrid.innerHTML = "";
@@ -977,6 +1032,67 @@ function initTermsModal() {
     }
   });
 }
+
+function normalizeCmsVehicles(items) {
+  return items.map((vehicle) => ({
+    ...vehicle,
+    image: resolveAssetPath(vehicle.image),
+  }));
+}
+
+function applyCmsPublishedContent(content) {
+  if (!content || typeof content !== "object") return;
+
+  if (Array.isArray(content.categories) && content.categories.length) {
+    categories = content.categories.map((item) => ({
+      ...item,
+      image: resolveAssetPath(item.image),
+    }));
+  }
+
+  if (Array.isArray(content.carClasses) && content.carClasses.length) {
+    carClasses = content.carClasses.map((item) => ({
+      ...item,
+      image: resolveAssetPath(item.image),
+    }));
+  }
+
+  if (content.carClassPolicies && typeof content.carClassPolicies === "object") {
+    carClassPolicies = { ...carClassPolicies, ...content.carClassPolicies };
+  }
+
+  if (content.categoryPolicies && typeof content.categoryPolicies === "object") {
+    categoryPolicies = { ...categoryPolicies, ...content.categoryPolicies };
+  }
+
+  if (Array.isArray(content.seasonalRules) && content.seasonalRules.length) {
+    seasonalRules = content.seasonalRules.map((rule) => ({
+      ...rule,
+      surchargePerDay: Number(rule.surchargePerDay || 0),
+      periods: Array.isArray(rule.periods) ? rule.periods : [],
+    }));
+  }
+
+  if (Array.isArray(content.vehicles) && content.vehicles.length) {
+    vehiclesData = normalizeCmsVehicles(content.vehicles);
+  }
+
+  if (currentMainCategory === "car" && currentCarClass) {
+    showVehicles();
+    return;
+  }
+
+  if (currentMainCategory) {
+    showVehicles();
+    return;
+  }
+
+  showMainCategories();
+}
+
+window.SMCarsDemoAPI = {
+  applyCmsPublishedContent,
+};
 
 function init() {
   initThemeToggle();

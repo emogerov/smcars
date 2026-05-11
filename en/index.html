@@ -26,6 +26,28 @@
   <meta name="google-site-verification" content="fxZ4K-nEeuZUkSAETkllQGJMCNbbMFrHzBMTkB57tc0" />
   <link rel="icon" type="image/x-icon" href="../assets/logo-dark.svg" />
   <link rel="stylesheet" href="../styles.css" />
+  <script>
+    document.documentElement.classList.add("cms-hydrating");
+  </script>
+  <style>
+    html.cms-hydrating #cms-hero-copy {
+      opacity: 0;
+      transform: translateY(18px);
+      visibility: hidden;
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+
+    html.cms-hydrating #cms-hero-copy .animate-fade-up {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+
+    html.cms-local-preview.cms-content-ready #cms-hero-copy {
+      opacity: 1;
+      transform: translateY(0);
+      visibility: visible;
+    }
+  </style>
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -137,20 +159,21 @@
 
     <section class="relative min-h-[920px] md:h-[85vh] md:min-h-[600px] flex items-start md:items-center pt-24 md:pt-0">
       <div class="absolute inset-0">
-        <video class="w-full h-full object-cover" autoplay muted loop playsinline preload="metadata" poster="../assets/hero-car.jpg">
-          <source src="../assets/Homepage%20video.mp4" type="video/mp4" />
+        <img id="cms-hero-image" src="../assets/hero-car.jpg" alt="" class="hidden w-full h-full object-cover" />
+        <video id="cms-hero-video" class="w-full h-full object-cover" autoplay muted loop playsinline preload="metadata" poster="../assets/hero-car.jpg">
+          <source id="cms-hero-video-source" src="../assets/Homepage%20video.mp4" type="video/mp4" />
         </video>
         <div class="hero-overlay absolute inset-0"></div>
       </div>
 
       <div class="relative container mx-auto px-6">
-        <div class="max-w-2xl" style="display: flex;flex-direction: column;text-align: center;gap: 1rem;align-items: center;margin: 0 auto;">
+        <div id="cms-hero-copy" class="max-w-2xl" style="display: flex;flex-direction:column;text-align:center;gap:1rem;align-items:center;margin:0 auto;">
           <img src="../assets/logo-light.svg" alt="SM Cars" class="h-10 hidden dark:block mb-8 animate-fade-up" style="animation-delay:0.1s" />
           <img src="../assets/logo-dark.svg" alt="SM Cars" class="h-10 dark:hidden mb-8 animate-fade-up" style="animation-delay:0.1s" />
-          <h1 class="font-heading text-5xl md:text-7xl font-extrabold leading-[1.05] mb-6 animate-fade-up" style="animation-delay:0.2s">
+          <h1 id="cms-hero-title" class="font-heading text-5xl md:text-7xl font-extrabold leading-[1.05] mb-6 animate-fade-up" style="animation-delay:0.2s">
             <span class="gold-gradient-text">Rent a car</span>
           </h1>
-          <p class="text-lg max-w-md mb-8 animate-fade-up" style="animation-delay:0.3s">
+          <p id="cms-hero-subtitle" class="text-lg max-w-md mb-8 animate-fade-up" style="animation-delay:0.3s">
             Browse our rental cars, motorcycles and cargo vans
           </p>
           <div class="flex flex-col gap-4 animate-fade-up" style="animation-delay:0.4s">
@@ -171,7 +194,7 @@
               </a>
             </div>
           </div>
-          <h2 class="font-heading text-[2.5rem] md:text-[3.5rem] font-extrabold leading-[1.05] mb-6 animate-fade-up" style="animation-delay:0.5s;margin-top:2.5rem;">
+          <h2 id="cms-hero-price" class="font-heading text-[2.5rem] md:text-[3.5rem] font-extrabold leading-[1.05] mb-6 animate-fade-up" style="animation-delay:0.5s;margin-top:2.5rem;">
             <span class="gold-gradient-text">Prices from 11€ per day</span>
           </h2>
         </div>
@@ -240,7 +263,7 @@
           </p>
         </div>
 
-        <div class="max-w-3xl mx-auto space-y-4">
+        <div id="cms-shuttle-routes" class="max-w-3xl mx-auto space-y-4">
           <div class="flex items-center justify-between gap-4 rounded-xl border border-border bg-card p-5 md:p-6 transition-all hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5">
             <div class="flex items-center gap-4">
               <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -348,7 +371,7 @@
                 </div>
                 <div>
                   <h4 class="font-heading font-semibold mb-1">Address</h4>
-                  <p class="text-muted-foreground text-sm">
+                  <p id="cms-address" class="text-muted-foreground text-sm">
                     234 Veliki Preslav Blvd.<br />
                     Shumen, Divdyadovo district
                   </p>
@@ -377,8 +400,8 @@
                 <div>
                   <h4 class="font-heading font-semibold mb-1">Contacts</h4>
                   <p class="text-muted-foreground text-sm">
-                    <a href="tel:+359894428975" class="hover:brightness-110">+359 89 442 8975</a><br /> 
-                    <a href="mailto:smcarsltd3@gmail.com" class="hover:brightness-110">smcarsltd3@gmail.com</a>
+                    <a id="cms-phone-link" href="tel:+359894428975" class="hover:brightness-110">+359 89 442 8975</a><br /> 
+                    <a id="cms-email-link" href="mailto:smcarsltd3@gmail.com" class="hover:brightness-110">smcarsltd3@gmail.com</a>
                   </p>
                 </div>
               </div>
@@ -387,6 +410,7 @@
 
           <div class="lg:col-span-2 rounded-lg overflow-hidden card-glow h-[400px]">
             <iframe
+              id="cms-map-embed"
               src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1027.7786994917303!2d26.922183221925525!3d43.23051936568666!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40a5f5ae93357973%3A0x2635105b6b7eb831!2sSM%20Cars%20Ltd.!5e0!3m2!1sen!2sbg!4v1771518503875!5m2!1sen!2sbg"
               width="100%"
               height="100%"
@@ -410,25 +434,25 @@
             <i data-lucide="x" class="w-4 h-4"></i>
           </button>
         </div>
-        <ol class="list-decimal pl-5 space-y-3 text-sm md:text-base text-muted-foreground leading-relaxed">
-          <li>Valid ID card or passport.</li>
-          <li>Valid driving license.</li>
-          <li>The listed rental prices are for a 24-hour period. All our prices include VAT.</li>
-          <li>No deposit is required for economy class cars.</li>
-          <li>The listed rental prices include third-party liability insurance, technical inspection and vignette fees for the Republic of Bulgaria. All other fees, fines, vignette fees outside Bulgaria and similar charges are paid by the renter.</li>
-          <li>Unlimited mileage.</li>
-          <li>Vehicle maintenance is included.</li>
-          <li>In the event of a technical problem with the vehicle, SM CARS Ltd. undertakes to provide you with a replacement vehicle.</li>
-          <li>Payment can be made in cash, by card via POS terminal or by bank transfer.</li>
-          <li>Before the vehicle is handed over, the full agreed rental amount must be paid. To reserve a vehicle, full payment or a deposit agreed between both parties (lessor and renter) is required.</li>
-          <li>The vehicle may be driven by the person listed in the rental contract plus one additional driver.</li>
-          <li>If the vehicle will be driven outside Bulgaria, this must be stated in the rental contract. In that case, a power of attorney is prepared for the driver and an additional fee of 100€ is charged.</li>
-          <li>In the event of any incident involving the vehicle, the renter must notify the authorities as well as the owning company. The renter must provide a police report or a formal complaint for the relevant case.</li>
-          <li>The vehicle is delivered to the renter with a full fuel tank and must be returned the same way. Otherwise, a fee of 110€ is charged.</li>
-          <li>The vehicle is delivered clean inside and out and must be returned in the same condition. Otherwise, a car wash fee of 20€ is charged.</li>
-          <li>Hand-over and return of the vehicle can be arranged at a time and place convenient for both parties after prior agreement, regardless of working hours.</li>
-          <li>SM CARS Ltd. reserves the right to terminate the contract immediately and apply related penalties in cases of improper conduct or negligent handling of our vehicles.</li>
-        </ol>
+        <div id="cms-terms-list" class="space-y-3 text-sm md:text-base text-muted-foreground leading-relaxed">
+          <p class="cms-term-line">1. Valid ID card or passport.</p>
+          <p class="cms-term-line">2. Valid driving license.</p>
+          <p class="cms-term-line">3. The listed rental prices are for a 24-hour period. All our prices include VAT.</p>
+          <p class="cms-term-line">4. No deposit is required for economy class cars.</p>
+          <p class="cms-term-line">5. The listed rental prices include third-party liability insurance, technical inspection and vignette fees for the Republic of Bulgaria. All other fees, fines, vignette fees outside Bulgaria and similar charges are paid by the renter.</p>
+          <p class="cms-term-line">6. Unlimited mileage.</p>
+          <p class="cms-term-line">7. Vehicle maintenance is included.</p>
+          <p class="cms-term-line">8. In the event of a technical problem with the vehicle, SM CARS Ltd. undertakes to provide you with a replacement vehicle.</p>
+          <p class="cms-term-line">9. Payment can be made in cash, by card via POS terminal or by bank transfer.</p>
+          <p class="cms-term-line">10. Before the vehicle is handed over, the full agreed rental amount must be paid. To reserve a vehicle, full payment or a deposit agreed between both parties (lessor and renter) is required.</p>
+          <p class="cms-term-line">11. The vehicle may be driven by the person listed in the rental contract plus one additional driver.</p>
+          <p class="cms-term-line">12. If the vehicle will be driven outside Bulgaria, this must be stated in the rental contract. In that case, a power of attorney is prepared for the driver and an additional fee of 100€ is charged.</p>
+          <p class="cms-term-line">13. In the event of any incident involving the vehicle, the renter must notify the authorities as well as the owning company. The renter must provide a police report or a formal complaint for the relevant case.</p>
+          <p class="cms-term-line">14. The vehicle is delivered to the renter with a full fuel tank and must be returned the same way. Otherwise, a fee of 110€ is charged.</p>
+          <p class="cms-term-line">15. The vehicle is delivered clean inside and out and must be returned in the same condition. Otherwise, a car wash fee of 20€ is charged.</p>
+          <p class="cms-term-line">16. Hand-over and return of the vehicle can be arranged at a time and place convenient for both parties after prior agreement, regardless of working hours.</p>
+          <p class="cms-term-line">17. SM CARS Ltd. reserves the right to terminate the contract immediately and apply related penalties in cases of improper conduct or negligent handling of our vehicles.</p>
+        </div>
       </div>
     </div>
 
@@ -449,6 +473,7 @@
 
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="../script.js"></script>
+  <script type="module" src="../cms-demo.js"></script>
 </body>
 </html>
 
