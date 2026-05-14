@@ -1,7 +1,17 @@
 import { DEFAULT_CMS_VEHICLES } from "./cms-seed-data.js";
 
-export const SUPABASE_URL = "https://hndqbiwmqazlzpkljgcn.supabase.co";
-export const SUPABASE_ANON_KEY = "sb_publishable_Jg5eU6gUba_rxk2ORIk6sQ_r9CnJE0B";
+const LIVE_SUPABASE_URL = "https://hndqbiwmqazlzpkljgcn.supabase.co";
+const LIVE_SUPABASE_ANON_KEY = "sb_publishable_Jg5eU6gUba_rxk2ORIk6sQ_r9CnJE0B";
+
+const STAGING_SUPABASE_URL = "https://dztkclhqoqiefqotrdtn.supabase.co";
+const STAGING_SUPABASE_ANON_KEY = "sb_publishable_tyhScgarjHA4ZdN1mVEfpA_IrR7Qmp8";
+
+const CMS_HOSTNAME = typeof window !== "undefined" ? window.location.hostname : "";
+const USE_STAGING_SUPABASE = ["127.0.0.1", "localhost"].includes(CMS_HOSTNAME);
+
+export const SUPABASE_URL = USE_STAGING_SUPABASE ? STAGING_SUPABASE_URL : LIVE_SUPABASE_URL;
+export const SUPABASE_ANON_KEY = USE_STAGING_SUPABASE ? STAGING_SUPABASE_ANON_KEY : LIVE_SUPABASE_ANON_KEY;
+export const CMS_ENVIRONMENT = USE_STAGING_SUPABASE ? "staging" : "live";
 export const VEHICLE_IMAGES_BUCKET = "vehicle-images";
 
 export const DEFAULT_CMS_CONTENT = {
