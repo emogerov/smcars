@@ -6,6 +6,7 @@ const RESERVE_EMAIL_HREF = IS_EN
   : "mailto:smcarsltd3@gmail.com?subject=Запитване%20за%20резервация";
 // For manual testing, set e.g. "2026-12-05". Keep null for real current date.
 const PRICE_TEST_DATE = null;
+const STRIPE_CHECKOUT_PLACEHOLDER = "#stripe-checkout";
 
 const UI_TEXT = {
   reserve: IS_EN ? "Reserve" : "Резервирай",
@@ -24,7 +25,57 @@ const UI_TEXT = {
   closeLabel: IS_EN ? "Close" : "Затвори",
   callLabel: IS_EN ? "Call now" : "Обади се",
   emailLabel: IS_EN ? "Send email" : "Изпрати имейл",
+  bookingTitle: IS_EN ? "Choose dates" : "Избери дати",
+  bookingVehicle: IS_EN ? "Vehicle" : "Превозно средство",
+  bookingVehiclePrompt: IS_EN ? "Choose vehicle" : "Избери превозно средство",
+  bookingFrom: IS_EN ? "From" : "От",
+  bookingTo: IS_EN ? "To" : "До",
+  bookingBusyToday: IS_EN ? "This vehicle is reserved for today." : "Превозното средство е резервирано за днес",
+  bookingAvailable: IS_EN ? "Selected dates are available." : "Избраните дати са свободни.",
+  bookingAvailableSingle: IS_EN ? "Selected date is available." : "Избраната дата е свободна.",
+  bookingUnavailable: IS_EN ? "Selected dates are not available." : "Избраните дати не са свободни.",
+  bookingRangesTitle: IS_EN ? "Reserved periods" : "Резервирани периоди",
+  bookingNoRanges: IS_EN ? "No booked dates yet." : "Все още няма заети дати.",
+  bookingEmailLabel: IS_EN ? "Send booking request" : "Изпрати запитване",
+    bookingPaymentLabel: IS_EN ? "Continue to payment" : "Към плащане",
+  bookingSelectDates: IS_EN ? "Select dates to continue." : "Избери дати, за да продължиш.",
+  bookingSelectVehicleDates: IS_EN ? "Choose vehicle and dates." : "Избери превозно средство и дати.",
+    bookingOr: IS_EN ? "or" : "или",
+    bookingTotal: IS_EN ? "Total price" : "Обща цена",
+    bookingTotalPending: IS_EN ? "Select vehicle and date(s)" : "Избери превозно средство и дата/дати",
+  bookingTotalPendingDatesOnly: IS_EN ? "Select date(s)" : "Избери дата/дати",
+  bookingClearDates: IS_EN ? "Clear dates" : "Изчисти датите",
+  bookingPrevMonth: IS_EN ? "Previous month" : "Предишен месец",
+  bookingNextMonth: IS_EN ? "Next month" : "Следващ месец",
+  bookingSelectedRange: IS_EN ? "Selected period" : "Избран период",
+  bookingStartPrompt: IS_EN ? "Choose start date" : "Избери начална дата",
+  bookingEndPrompt: IS_EN ? "Choose end date" : "Избери крайна дата",
+  bookingUnavailableRange: IS_EN ? "This range crosses booked dates." : "Този период пресича заети дати.",
+  weekdays: IS_EN ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] : ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"],
+  months: IS_EN
+    ? ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    : ["Януари", "Февруари", "Март", "Април", "Май", "Юни", "Юли", "Август", "Септември", "Октомври", "Ноември", "Декември"],
 };
+
+let publicBookings = [];
+let activeReserveVehicleId = null;
+let reserveSelectionStart = "";
+let reserveSelectionEnd = "";
+let reserveCalendarMonth = "";
+
+function slugifyValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function normalizeVehicleRecord(vehicle, index = 0) {
+  return {
+    ...vehicle,
+    id: vehicle.id || slugifyValue(`${vehicle.mainCategory || "vehicle"}-${vehicle.name || ""}-${vehicle.brand || ""}-${vehicle.model || ""}`),
+  };
+}
 
 let categories = [
   {
@@ -446,6 +497,8 @@ let vehiclesData = [
   });
 });
 
+vehiclesData = vehiclesData.map(normalizeVehicleRecord);
+
 let currentMainCategory = null;
 let currentCarClass = null;
 let currentGearboxFilter = "all";
@@ -491,6 +544,10 @@ function localizePriceValue(value) {
 function localizeDepositText(value) {
   if (!IS_EN) return value;
   return value.replaceAll("Без депозит", "No deposit");
+}
+
+function getVehicleDisplayName(vehicle) {
+  return [vehicle.brand, vehicle.model].filter(Boolean).join(" ").trim();
 }
 
 function refreshIcons() {
@@ -664,8 +721,284 @@ function renderPriceList(vehicle) {
     </div>`;
 }
 
+function getVehicleById(vehicleId) {
+  return vehiclesData.find((vehicle) => vehicle.id === vehicleId) || null;
+}
+
+function getPublicBookingsForVehicle(vehicleId) {
+  const today = toIsoDate(getPricingDate());
+  return publicBookings.filter((booking) => booking.vehicle_id === vehicleId && booking.end_date >= today);
+}
+
+function isVehicleBookedToday(vehicleId) {
+  const today = getPricingDate().toISOString().slice(0, 10);
+  return getPublicBookingsForVehicle(vehicleId).some((booking) => booking.start_date <= today && booking.end_date >= today);
+}
+
+function hasBookingConflict(vehicleId, startDate, endDate) {
+  if (!vehicleId || !startDate || !endDate) return false;
+  return getPublicBookingsForVehicle(vehicleId).some((booking) => booking.start_date <= endDate && booking.end_date >= startDate);
+}
+
+function renderBookedRanges(vehicleId) {
+  const items = getPublicBookingsForVehicle(vehicleId).sort((left, right) => `${left.start_date}`.localeCompare(`${right.start_date}`));
+  if (!items.length) {
+    return `<p class="text-sm text-muted-foreground">${escapeHtml(UI_TEXT.bookingNoRanges)}</p>`;
+  }
+
+  return `<div class="flex flex-col gap-2">${items
+    .map(
+      (booking) => `<div class="rounded-md border border-border bg-secondary/40 px-3 py-2 text-sm text-foreground">
+        <span>${escapeHtml(`${booking.start_date} - ${booking.end_date}`)}</span>
+      </div>`,
+    )
+    .join("")}</div>`;
+}
+
+function buildBookingEmailHref(vehicle, startDate, endDate) {
+  const subject = IS_EN ? "Booking request" : "Запитване за резервация";
+  const body = IS_EN
+    ? `Vehicle: ${getVehicleDisplayName(vehicle)}%0AFrom: ${startDate}%0ATo: ${endDate}`
+    : `Превозно средство: ${getVehicleDisplayName(vehicle)}%0AОт: ${startDate}%0AДо: ${endDate}`;
+  return `mailto:smcarsltd3@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+}
+
+function parsePriceNumber(value) {
+  if (!value) return null;
+  const match = String(value).match(/(\d+(?:[.,]\d+)?)/);
+  if (!match) return null;
+  const parsed = Number.parseFloat(match[1].replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatEuroAmount(value) {
+  if (!Number.isFinite(value)) return "";
+  if (Number.isInteger(value)) return `${value}€`;
+  return `${value.toFixed(2).replace(".", ",")}€`;
+}
+
+function getSelectionRange(startDate, endDate) {
+  if (!startDate) return null;
+  return {
+    start: startDate,
+    end: endDate || startDate,
+  };
+}
+
+function getInclusiveDayCount(startDate, endDate) {
+  const start = parseIsoToUtcDate(startDate);
+  const end = parseIsoToUtcDate(endDate);
+  if (!start || !end) return 0;
+  const diffMs = end.getTime() - start.getTime();
+  return diffMs >= 0 ? Math.floor(diffMs / 86400000) + 1 : 0;
+}
+
+function countSeasonalDaysInRange(vehicle, startDate, endDate) {
+  let total = 0;
+  for (let current = startDate; current && current <= endDate; current = addDaysToIso(current, 1)) {
+    const currentDate = parseIsoToUtcDate(current);
+    if (currentDate && getSeasonalSurcharge(vehicle, currentDate) > 0) {
+      total += 1;
+    }
+  }
+  return total;
+}
+
+function getBookingQuote(vehicle, startDate, endDate) {
+  if (!vehicle || !startDate || !endDate || endDate < startDate) return null;
+  const days = getInclusiveDayCount(startDate, endDate);
+  if (!days) return null;
+
+  const seasonalDays = countSeasonalDaysInRange(vehicle, startDate, endDate);
+  const surchargePerDay = getSeasonalSurcharge(vehicle, parseIsoToUtcDate(startDate) || getPricingDate());
+
+  if (days > 30) {
+    return {
+      days,
+      total: null,
+      label: localizePriceValue(vehicle.prices?.[4]?.value || ""),
+      payable: false,
+    };
+  }
+
+  if (days === 1) {
+    const dayBase = parsePriceNumber(vehicle.prices?.[0]?.value);
+    if (!Number.isFinite(dayBase)) return null;
+    const total = dayBase + surchargePerDay * seasonalDays;
+    return {
+      days,
+      total,
+      label: formatEuroAmount(total),
+      payable: true,
+    };
+  }
+
+  let tierIndex = 1;
+  if (days >= 7 && days <= 14) {
+    tierIndex = 2;
+  } else if (days >= 15 && days <= 30) {
+    tierIndex = 3;
+  }
+
+  const dailyBase = parsePriceNumber(vehicle.prices?.[tierIndex]?.value);
+  if (!Number.isFinite(dailyBase)) return null;
+  const total = dailyBase * days + surchargePerDay * seasonalDays;
+  return {
+    days,
+    total,
+    label: formatEuroAmount(total),
+    payable: true,
+  };
+}
+
+function buildStripeCheckoutPayload(vehicle, startDate, endDate, quote) {
+  if (!vehicle || !startDate || !endDate || !quote?.payable || !Number.isFinite(quote?.total)) return null;
+  return {
+    vehicleId: vehicle.id,
+    vehicleName: getVehicleDisplayName(vehicle),
+    startDate,
+    endDate,
+    days: quote.days || getInclusiveDayCount(startDate, endDate),
+    amount: quote.total,
+    currency: "EUR",
+    locale: IS_EN ? "en" : "bg",
+    returnUrl: window.location.href,
+  };
+}
+
+function getSupabaseFunctionUrl(functionName) {
+  const baseUrl = window.SMCarsSupabaseConfig?.url;
+  if (!baseUrl || !functionName) return "";
+  return `${baseUrl}/functions/v1/${functionName}`;
+}
+
+function getSupabasePublishableKey() {
+  return window.SMCarsSupabaseConfig?.anonKey || "";
+}
+
+async function createStripeCheckoutSession(payload) {
+  const functionUrl = getSupabaseFunctionUrl("create-stripe-checkout");
+  const publishableKey = getSupabasePublishableKey();
+  if (!functionUrl || !publishableKey) {
+    throw new Error("Stripe checkout is not configured.");
+  }
+
+  const response = await fetch(functionUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: publishableKey,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || `Checkout failed with HTTP ${response.status}`);
+  }
+
+  return data;
+}
+
+function padDatePart(value) {
+  return String(value).padStart(2, "0");
+}
+
+function formatLocalDateToIso(date) {
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+}
+
+function parseIsoToUtcDate(isoDate) {
+  if (!isoDate) return null;
+  const [year, month, day] = isoDate.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function toIsoDate(value) {
+  if (!value) return "";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return formatLocalDateToIso(date);
+}
+
+function addDaysToIso(isoDate, days) {
+  const date = parseIsoToUtcDate(isoDate);
+  if (!date) return "";
+  date.setUTCDate(date.getUTCDate() + days);
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-${padDatePart(date.getUTCDate())}`;
+}
+
+function startOfMonthIso(isoDate) {
+  const date = parseIsoToUtcDate(isoDate);
+  if (!date) return "";
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-01`;
+}
+
+function monthLabelFromIso(isoDate) {
+  const date = parseIsoToUtcDate(isoDate);
+  if (!date) return "";
+  return `${UI_TEXT.months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+}
+
+function monthOffsetIso(isoDate, offset) {
+  const date = parseIsoToUtcDate(isoDate);
+  if (!date) return "";
+  date.setUTCMonth(date.getUTCMonth() + offset, 1);
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-01`;
+}
+
+function startOfCalendarGridIso(monthIso) {
+  const date = parseIsoToUtcDate(monthIso);
+  if (!date) return "";
+  const jsDay = date.getUTCDay();
+  const mondayIndex = (jsDay + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - mondayIndex);
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-${padDatePart(date.getUTCDate())}`;
+}
+
+function isSameMonthIso(dayIso, monthIso) {
+  return dayIso.slice(0, 7) === monthIso.slice(0, 7);
+}
+
+function isDateWithinRange(dateIso, startIso, endIso) {
+  if (!startIso || !endIso) return false;
+  return dateIso >= startIso && dateIso <= endIso;
+}
+
+function formatHumanDate(isoDate) {
+  if (!isoDate) return "";
+  const date = parseIsoToUtcDate(isoDate);
+  if (!date) return "";
+  return `${date.getUTCDate()} ${UI_TEXT.months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+}
+
+function getVehicleBookedRanges(vehicleId) {
+  return getPublicBookingsForVehicle(vehicleId)
+    .map((booking) => ({
+      start: booking.start_date,
+      end: booking.end_date,
+      status: booking.status,
+    }))
+    .sort((left, right) => left.start.localeCompare(right.start));
+}
+
+function isDateBookedForVehicle(vehicleId, dateIso) {
+  return getVehicleBookedRanges(vehicleId).some((range) => dateIso >= range.start && dateIso <= range.end);
+}
+
+function doesSelectionCrossBookedDates(vehicleId, startIso, endIso) {
+  if (!vehicleId || !startIso || !endIso) return false;
+  return getVehicleBookedRanges(vehicleId).some((range) => startIso <= range.end && endIso >= range.start);
+}
+
 function renderVehicleCard(vehicle, index) {
   const luggageIcons = renderLuggageIcons(vehicle);
+  const bookedToday = isVehicleBookedToday(vehicle.id);
+  const todayNoticeHtml = bookedToday
+    ? `<div class="mb-4 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary font-medium">${escapeHtml(UI_TEXT.bookingBusyToday)}</div>`
+    : "";
   const specsHtml =
     vehicle.mainCategory === "motor"
       ? ""
@@ -689,6 +1022,7 @@ function renderVehicleCard(vehicle, index) {
       </div>
 
       <div class="p-5 flex-1 flex flex-col">
+        ${todayNoticeHtml}
         ${specsHtml}
 
         <div class="space-y-3 mb-4">
@@ -696,7 +1030,7 @@ function renderVehicleCard(vehicle, index) {
         </div>
 
         <div class="mt-auto pt-4 border-t border-border flex justify-center">
-          <a href="#" data-open-reserve-modal="true" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
+          <a href="#" data-open-reserve-modal="true" data-reserve-vehicle-id="${escapeHtml(vehicle.id)}" data-reserve-vehicle-name="${escapeHtml(getVehicleDisplayName(vehicle))}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
             <i data-lucide="calendar" class="w-4 h-4"></i>
             ${UI_TEXT.reserve}
           </a>
@@ -933,21 +1267,83 @@ function initReserveModal() {
 
   document.body.insertAdjacentHTML(
     "beforeend",
-    `<div id="reserve-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+    `<div id="reserve-modal" class="reserve-modal-shell fixed inset-0 z-50 hidden items-center justify-center p-6">
       <button type="button" data-close-reserve-modal="true" class="absolute inset-0 bg-background/80 backdrop-blur-xl" aria-label="${UI_TEXT.closeLabel}"></button>
-      <div class="relative w-full rounded-lg border border-border bg-card p-6 card-glow" style="max-width:420px;">
+      <div class="reserve-modal-panel relative w-full rounded-lg border border-border bg-card p-6 card-glow" style="max-width:560px;">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="font-heading text-xl font-bold text-foreground">${UI_TEXT.modalTitle}</h3>
+          <div>
+            <h3 class="font-heading text-xl font-bold text-foreground">${UI_TEXT.bookingTitle}</h3>
+            <p id="reserve-vehicle-name" class="text-sm text-muted-foreground mt-1"></p>
+          </div>
           <button type="button" data-close-reserve-modal="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="${UI_TEXT.closeLabel}">
             <i data-lucide="x" class="w-4 h-4"></i>
           </button>
         </div>
+
+        <label class="mb-4 flex flex-col gap-2">
+          <span class="text-xs uppercase tracking-wider text-muted-foreground">${UI_TEXT.bookingVehicle}</span>
+          <div class="reserve-vehicle-select-shell">
+            <select id="reserve-vehicle-select" class="reserve-vehicle-select w-full rounded-md border border-border bg-secondary/40 px-4 py-3 text-sm font-medium text-foreground outline-none transition-colors focus:border-primary">
+              <option value="">${UI_TEXT.bookingVehiclePrompt}</option>
+            </select>
+            <span class="reserve-vehicle-select-arrow" aria-hidden="true">
+              <i data-lucide="chevron-down" class="w-4 h-4"></i>
+            </span>
+          </div>
+        </label>
+
+        <div id="reserve-today-message" class="hidden mb-4 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary font-medium"></div>
+
+        <div class="reserve-selection-panel mb-4 rounded-md border border-border bg-secondary/30 p-3">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-muted-foreground">${UI_TEXT.bookingSelectedRange}</p>
+              <p id="reserve-selected-range" class="text-sm font-semibold text-foreground">${UI_TEXT.bookingStartPrompt}</p>
+            </div>
+            <button id="reserve-clear-dates" type="button" class="inline-flex items-center justify-center rounded-md border border-border bg-secondary px-3 py-2 text-sm font-heading font-semibold text-secondary-foreground hover:bg-accent transition-colors">
+              ${UI_TEXT.bookingClearDates}
+            </button>
+          </div>
+          <div class="reserve-calendar rounded-md border border-border bg-card/80 p-3">
+            <div class="mb-3 flex items-center justify-between gap-2">
+              <button id="reserve-calendar-prev" type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="${UI_TEXT.bookingPrevMonth}">
+                <i data-lucide="chevron-left" class="w-4 h-4"></i>
+              </button>
+              <p id="reserve-calendar-month" class="text-sm font-heading font-semibold text-foreground"></p>
+              <button id="reserve-calendar-next" type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="${UI_TEXT.bookingNextMonth}">
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div id="reserve-calendar-weekdays" class="reserve-calendar-weekdays"></div>
+            <div id="reserve-calendar-grid" class="reserve-calendar-grid"></div>
+          </div>
+        </div>
+
+        <div id="reserve-availability-message" class="mb-4 rounded-md border border-border bg-secondary/40 px-3 py-2 text-sm text-muted-foreground">${UI_TEXT.bookingSelectDates}</div>
+
+        <div class="mb-4">
+          <p class="text-sm font-semibold text-foreground mb-2">${UI_TEXT.bookingRangesTitle}</p>
+          <div id="reserve-booked-ranges"></div>
+        </div>
+
+        <div class="mb-4 rounded-md border border-border bg-secondary/30 px-4 py-3">
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-sm font-semibold text-foreground">${UI_TEXT.bookingTotal}</span>
+            <span id="reserve-total-price" class="text-sm font-bold text-primary">${UI_TEXT.bookingTotalPending}</span>
+          </div>
+        </div>
+
         <div class="flex flex-col gap-2">
-          <a href="${RESERVE_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
+          <a id="reserve-payment-link" href="${STRIPE_CHECKOUT_PLACEHOLDER}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md bg-primary text-primary-foreground font-heading font-semibold text-sm tracking-wide hover:brightness-110 transition-all">
+            <i data-lucide="credit-card" class="w-4 h-4"></i>
+            ${UI_TEXT.bookingPaymentLabel}
+          </a>
+          <p class="text-center text-sm font-medium text-muted-foreground">${UI_TEXT.bookingOr}</p>
+          <a href="${RESERVE_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="phone" class="w-4 h-4"></i>
             ${UI_TEXT.callLabel}
           </a>
-          <a href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a id="reserve-email-link" href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="mail" class="w-4 h-4"></i>
             ${UI_TEXT.emailLabel}
           </a>
@@ -958,11 +1354,290 @@ function initReserveModal() {
 
   const modal = document.getElementById("reserve-modal");
   if (!modal) return;
+  const vehicleName = document.getElementById("reserve-vehicle-name");
+  const vehicleSelect = document.getElementById("reserve-vehicle-select");
+  const todayMessage = document.getElementById("reserve-today-message");
+  const selectedRange = document.getElementById("reserve-selected-range");
+  const clearDatesButton = document.getElementById("reserve-clear-dates");
+  const calendarMonth = document.getElementById("reserve-calendar-month");
+  const calendarWeekdays = document.getElementById("reserve-calendar-weekdays");
+  const calendarGrid = document.getElementById("reserve-calendar-grid");
+  const prevMonthButton = document.getElementById("reserve-calendar-prev");
+  const nextMonthButton = document.getElementById("reserve-calendar-next");
+  const availabilityMessage = document.getElementById("reserve-availability-message");
+  const bookedRanges = document.getElementById("reserve-booked-ranges");
+  const totalPrice = document.getElementById("reserve-total-price");
+  const paymentLink = document.getElementById("reserve-payment-link");
+  const emailLink = document.getElementById("reserve-email-link");
+  let checkoutInFlight = false;
 
-  const openModal = () => {
+  const setPaymentLinkDisabled = (disabled) => {
+    if (!paymentLink) return;
+    if (disabled) {
+      paymentLink.href = STRIPE_CHECKOUT_PLACEHOLDER;
+      paymentLink.setAttribute("aria-disabled", "true");
+      paymentLink.style.pointerEvents = "none";
+      paymentLink.style.opacity = "0.65";
+      return;
+    }
+
+    paymentLink.href = STRIPE_CHECKOUT_PLACEHOLDER;
+    paymentLink.removeAttribute("aria-disabled");
+    paymentLink.style.pointerEvents = "";
+    paymentLink.style.opacity = "";
+  };
+
+  const setCheckoutLoading = (loading) => {
+    if (!paymentLink) return;
+    checkoutInFlight = loading;
+    paymentLink.dataset.loading = loading ? "true" : "false";
+    paymentLink.style.pointerEvents = loading ? "none" : paymentLink.style.pointerEvents;
+    paymentLink.style.opacity = loading ? "0.8" : paymentLink.style.opacity;
+    paymentLink.innerHTML = loading
+      ? `<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i>${escapeHtml(IS_EN ? "Redirecting..." : "Пренасочване...")}`
+      : `<i data-lucide="credit-card" class="w-4 h-4"></i>${escapeHtml(UI_TEXT.bookingPaymentLabel)}`;
+    refreshIcons();
+  };
+
+  if (calendarWeekdays) {
+    calendarWeekdays.innerHTML = UI_TEXT.weekdays
+      .map((day) => `<span class="reserve-calendar-weekday">${escapeHtml(day)}</span>`)
+      .join("");
+  }
+
+  const renderVehicleOptions = () => {
+    if (!vehicleSelect) return;
+    const options = vehiclesData
+      .slice()
+      .sort((left, right) => getVehicleDisplayName(left).localeCompare(getVehicleDisplayName(right), SITE_LANG))
+      .map(
+        (vehicle) =>
+          `<option value="${escapeHtml(vehicle.id)}">${escapeHtml(getVehicleDisplayName(vehicle))}</option>`,
+      );
+    vehicleSelect.innerHTML = `<option value="">${escapeHtml(UI_TEXT.bookingVehiclePrompt)}</option>${options.join("")}`;
+  };
+
+  renderVehicleOptions();
+
+  const updateSelectedRangeLabel = () => {
+    if (!selectedRange) return;
+    const activeRange = getSelectionRange(reserveSelectionStart, reserveSelectionEnd);
+    if (!activeRange) {
+      selectedRange.textContent = UI_TEXT.bookingStartPrompt;
+      return;
+    }
+    if (activeRange.start === activeRange.end) {
+      selectedRange.textContent = formatHumanDate(activeRange.start);
+      return;
+    }
+    selectedRange.textContent = `${formatHumanDate(activeRange.start)} → ${formatHumanDate(activeRange.end)}`;
+  };
+
+  const renderCalendar = () => {
+    if (!calendarMonth || !calendarGrid) return;
+    const fallbackMonth = startOfMonthIso(toIsoDate(getPricingDate()) || new Date().toISOString().slice(0, 10));
+    if (!reserveCalendarMonth) reserveCalendarMonth = fallbackMonth;
+    calendarMonth.textContent = monthLabelFromIso(reserveCalendarMonth);
+
+    const gridStart = startOfCalendarGridIso(reserveCalendarMonth);
+    const todayIso = toIsoDate(getPricingDate());
+    const vehicleId = activeReserveVehicleId;
+    const cells = [];
+
+    for (let index = 0; index < 42; index += 1) {
+      const dayIso = addDaysToIso(gridStart, index);
+      const inMonth = isSameMonthIso(dayIso, reserveCalendarMonth);
+      const isToday = dayIso === todayIso;
+      const isPast = dayIso < todayIso;
+      const isBooked = vehicleId && !isPast ? isDateBookedForVehicle(vehicleId, dayIso) : false;
+      const isStart = reserveSelectionStart === dayIso;
+      const isEnd = reserveSelectionEnd === dayIso;
+      const inSelection =
+        reserveSelectionStart && reserveSelectionEnd && isDateWithinRange(dayIso, reserveSelectionStart, reserveSelectionEnd);
+      const classes = [
+        "reserve-calendar-day",
+        inMonth ? "" : "is-outside-month",
+        isToday ? "is-today" : "",
+        isPast ? "is-disabled" : "",
+        isBooked ? "is-booked" : "",
+        inSelection ? "is-in-range" : "",
+        isStart ? "is-range-start" : "",
+        isEnd ? "is-range-end" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      cells.push(
+        `<button type="button" class="${classes}" data-calendar-date="${dayIso}" ${isBooked || isPast || !vehicleId ? "disabled" : ""} aria-label="${escapeHtml(
+          formatHumanDate(dayIso),
+        )}">
+          <span>${parseIsoToUtcDate(dayIso)?.getUTCDate() ?? ""}</span>
+        </button>`,
+      );
+    }
+
+    calendarGrid.innerHTML = cells.join("");
+  };
+
+  const syncReserveModalState = () => {
+    const vehicle = getVehicleById(activeReserveVehicleId);
+    const activeRange = getSelectionRange(reserveSelectionStart, reserveSelectionEnd);
+    const effectiveStart = activeRange?.start || "";
+    const effectiveEnd = activeRange?.end || "";
+    const quote = vehicle ? getBookingQuote(vehicle, effectiveStart, effectiveEnd) : null;
+    updateSelectedRangeLabel();
+    renderCalendar();
+    if (vehicleSelect) {
+      vehicleSelect.value = vehicle?.id || "";
+    }
+
+    if (!vehicle) {
+      vehicleName.textContent = UI_TEXT.bookingVehiclePrompt;
+      todayMessage.classList.add("hidden");
+      bookedRanges.innerHTML = `<p class="text-sm text-muted-foreground">${escapeHtml(UI_TEXT.bookingNoRanges)}</p>`;
+      availabilityMessage.textContent = UI_TEXT.bookingSelectVehicleDates;
+      availabilityMessage.className = "mb-4 rounded-md border border-border bg-secondary/40 px-3 py-2 text-sm text-muted-foreground";
+      totalPrice.textContent = UI_TEXT.bookingTotalPending;
+      totalPrice.className = "text-sm font-bold text-primary";
+      setPaymentLinkDisabled(true);
+      emailLink.href = RESERVE_EMAIL_HREF;
+      return;
+    }
+
+    vehicleName.textContent = `${UI_TEXT.bookingVehicle}: ${getVehicleDisplayName(vehicle)}`;
+    const bookedToday = isVehicleBookedToday(vehicle.id);
+    todayMessage.classList.add("hidden");
+    bookedRanges.innerHTML = renderBookedRanges(vehicle.id);
+
+    const hasConflict = hasBookingConflict(vehicle.id, effectiveStart, effectiveEnd);
+    emailLink.href = effectiveStart && effectiveEnd ? buildBookingEmailHref(vehicle, effectiveStart, effectiveEnd) : RESERVE_EMAIL_HREF;
+
+    if (!effectiveStart || !effectiveEnd) {
+      availabilityMessage.textContent = UI_TEXT.bookingSelectDates;
+      availabilityMessage.className = "mb-4 rounded-md border border-border bg-secondary/40 px-3 py-2 text-sm text-muted-foreground";
+      totalPrice.textContent = UI_TEXT.bookingTotalPendingDatesOnly;
+      totalPrice.className = "text-sm font-bold text-primary";
+      setPaymentLinkDisabled(true);
+      return;
+    }
+
+    if (effectiveEnd < effectiveStart) {
+      availabilityMessage.textContent = UI_TEXT.bookingUnavailable;
+      availabilityMessage.className = "mb-4 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200";
+      totalPrice.textContent = UI_TEXT.bookingTotalPendingDatesOnly;
+      totalPrice.className = "text-sm font-bold text-primary";
+      setPaymentLinkDisabled(true);
+      return;
+    }
+
+    if (hasConflict) {
+      availabilityMessage.textContent = UI_TEXT.bookingUnavailableRange;
+      availabilityMessage.className = "mb-4 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200";
+      totalPrice.textContent = UI_TEXT.bookingTotalPendingDatesOnly;
+      totalPrice.className = "text-sm font-bold text-primary";
+      setPaymentLinkDisabled(true);
+      return;
+    }
+
+    availabilityMessage.textContent = effectiveStart === effectiveEnd ? UI_TEXT.bookingAvailableSingle : UI_TEXT.bookingAvailable;
+    availabilityMessage.className = "mb-4 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200";
+    totalPrice.textContent = quote?.label || UI_TEXT.bookingTotalPendingDatesOnly;
+    totalPrice.className = `text-sm font-bold ${quote?.payable ? "text-primary" : "text-muted-foreground"}`;
+    if (quote?.payable) {
+      setPaymentLinkDisabled(false);
+    } else {
+      setPaymentLinkDisabled(true);
+    }
+  };
+
+  const startStripeCheckout = async () => {
+    if (checkoutInFlight) return;
+    const vehicle = getVehicleById(activeReserveVehicleId);
+    const activeRange = getSelectionRange(reserveSelectionStart, reserveSelectionEnd);
+    const effectiveStart = activeRange?.start || "";
+    const effectiveEnd = activeRange?.end || "";
+    const quote = vehicle ? getBookingQuote(vehicle, effectiveStart, effectiveEnd) : null;
+    const payload = buildStripeCheckoutPayload(vehicle, effectiveStart, effectiveEnd, quote);
+
+    if (!payload) {
+      setPaymentLinkDisabled(true);
+      return;
+    }
+
+    try {
+      setCheckoutLoading(true);
+      const result = await createStripeCheckoutSession(payload);
+      if (!result?.url) {
+        throw new Error("Stripe checkout URL is missing.");
+      }
+      window.location.href = result.url;
+    } catch (error) {
+      console.error("Stripe checkout start failed:", error);
+      availabilityMessage.textContent = error?.message || (IS_EN ? "Payment could not be started." : "Плащането не можа да бъде стартирано.");
+      availabilityMessage.className = "mb-4 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200";
+      setCheckoutLoading(false);
+      syncReserveModalState();
+    }
+  };
+
+  const clearSelection = () => {
+    reserveSelectionStart = "";
+    reserveSelectionEnd = "";
+    syncReserveModalState();
+  };
+
+  const handleDaySelection = (dayIso) => {
+    if (!activeReserveVehicleId || isDateBookedForVehicle(activeReserveVehicleId, dayIso)) return;
+
+    if (!reserveSelectionStart) {
+      reserveSelectionStart = dayIso;
+      reserveSelectionEnd = "";
+      syncReserveModalState();
+      return;
+    }
+
+    if (dayIso === reserveSelectionStart) {
+      clearSelection();
+      return;
+    }
+
+    if (dayIso < reserveSelectionStart) {
+      const previousEnd = reserveSelectionEnd;
+      reserveSelectionStart = dayIso;
+      if (
+        previousEnd &&
+        previousEnd > dayIso &&
+        !doesSelectionCrossBookedDates(activeReserveVehicleId, dayIso, previousEnd)
+      ) {
+        reserveSelectionEnd = previousEnd;
+      } else {
+        reserveSelectionEnd = "";
+      }
+      syncReserveModalState();
+      return;
+    }
+
+    if (doesSelectionCrossBookedDates(activeReserveVehicleId, reserveSelectionStart, dayIso)) {
+      availabilityMessage.textContent = UI_TEXT.bookingUnavailableRange;
+      availabilityMessage.className = "mb-4 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-sm text-red-200";
+      renderCalendar();
+      return;
+    }
+
+    reserveSelectionEnd = dayIso;
+    syncReserveModalState();
+  };
+
+  const openModal = (vehicleId = null) => {
+    renderVehicleOptions();
+    activeReserveVehicleId = vehicleId;
+    reserveSelectionStart = "";
+    reserveSelectionEnd = "";
+    reserveCalendarMonth = startOfMonthIso(toIsoDate(getPricingDate()) || new Date().toISOString().slice(0, 10));
     modal.classList.remove("hidden");
     modal.classList.add("flex");
     document.body.style.overflow = "hidden";
+    syncReserveModalState();
     refreshIcons();
   };
 
@@ -970,13 +1645,35 @@ function initReserveModal() {
     modal.classList.remove("flex");
     modal.classList.add("hidden");
     document.body.style.overflow = "";
+    activeReserveVehicleId = null;
   };
+
+  vehicleSelect?.addEventListener("change", () => {
+    activeReserveVehicleId = vehicleSelect.value || null;
+    reserveSelectionStart = "";
+    reserveSelectionEnd = "";
+    syncReserveModalState();
+  });
+  clearDatesButton?.addEventListener("click", clearSelection);
+  prevMonthButton?.addEventListener("click", () => {
+    reserveCalendarMonth = monthOffsetIso(reserveCalendarMonth, -1);
+    renderCalendar();
+  });
+  nextMonthButton?.addEventListener("click", () => {
+    reserveCalendarMonth = monthOffsetIso(reserveCalendarMonth, 1);
+    renderCalendar();
+  });
+  calendarGrid?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-calendar-date]");
+    if (!button || button.hasAttribute("disabled")) return;
+    handleDaySelection(button.getAttribute("data-calendar-date"));
+  });
 
   document.addEventListener("click", (event) => {
     const openTrigger = event.target.closest("[data-open-reserve-modal='true']");
     if (openTrigger) {
       event.preventDefault();
-      openModal();
+      openModal(openTrigger.getAttribute("data-reserve-vehicle-id"));
       return;
     }
 
@@ -984,6 +1681,14 @@ function initReserveModal() {
     if (closeTrigger) {
       event.preventDefault();
       closeModal();
+      return;
+    }
+
+    const paymentTrigger = event.target.closest('#reserve-payment-link');
+    if (paymentTrigger) {
+      event.preventDefault();
+      if (paymentTrigger.getAttribute('aria-disabled') === 'true') return;
+      startStripeCheckout();
     }
   });
 
@@ -1033,11 +1738,52 @@ function initTermsModal() {
   });
 }
 
+function showCheckoutStatusNotice(kind) {
+  const existing = document.getElementById("checkout-status-notice");
+  if (existing) existing.remove();
+
+  const notice = document.createElement("div");
+  notice.id = "checkout-status-notice";
+  notice.className = "fixed right-4 z-50 max-w-md rounded-lg border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur-sm";
+  notice.style.top = "5rem";
+
+  if (kind === "success") {
+    notice.classList.add("border-emerald-400/40", "bg-emerald-500/10", "text-foreground");
+    notice.textContent = IS_EN
+      ? "Payment completed. Your reservation will be confirmed within a few seconds."
+      : "Плащането е успешно. Резервацията ще бъде потвърдена до няколко секунди.";
+  } else {
+    notice.classList.add("border-border", "bg-card", "text-foreground");
+    notice.textContent = IS_EN
+      ? "Payment was cancelled. You can choose another date or contact us."
+      : "Плащането беше прекъснато. Можеш да избереш други дати или да се свържеш с нас.";
+  }
+
+  document.body.appendChild(notice);
+  window.setTimeout(() => {
+    notice.remove();
+  }, 7000);
+}
+
+function initStripeCheckoutStatus() {
+  const url = new URL(window.location.href);
+  const checkoutStatus = url.searchParams.get("checkout");
+  if (!checkoutStatus) return;
+
+  if (checkoutStatus === "success" || checkoutStatus === "cancel") {
+    showCheckoutStatusNotice(checkoutStatus);
+  }
+
+  url.searchParams.delete("checkout");
+  url.searchParams.delete("session_id");
+  window.history.replaceState({}, "", url.toString());
+}
+
 function normalizeCmsVehicles(items) {
-  return items.map((vehicle) => ({
+  return items.map((vehicle, index) => normalizeVehicleRecord({
     ...vehicle,
     image: resolveAssetPath(vehicle.image),
-  }));
+  }, index));
 }
 
 function applyCmsPublishedContent(content) {
@@ -1092,9 +1838,16 @@ function applyCmsPublishedContent(content) {
 
 window.SMCarsDemoAPI = {
   applyCmsPublishedContent,
+  applyPublicBookings(bookings) {
+    publicBookings = Array.isArray(bookings) ? bookings : [];
+    if (currentMainCategory) {
+      showVehicles();
+    }
+  },
 };
 
 function init() {
+  initStripeCheckoutStatus();
   initThemeToggle();
   initFooterYear();
   initCategoryHandlers();

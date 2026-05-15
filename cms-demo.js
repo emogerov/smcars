@@ -8,6 +8,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+window.SMCarsSupabaseConfig = {
+  url: SUPABASE_URL,
+  anonKey: SUPABASE_ANON_KEY,
+};
+
 const isLocalDemoHost = ["127.0.0.1", "localhost"].includes(window.location.hostname);
 
 bootstrapCmsContent();
@@ -15,6 +20,7 @@ bootstrapCmsContent();
 async function bootstrapCmsContent() {
   const heroCopy = document.getElementById("cms-hero-copy");
   const content = await fetchActiveContent();
+  const bookings = await fetchPublicBookings();
   if (!content) {
     document.documentElement.classList.remove("cms-hydrating");
     document.documentElement.classList.remove("cms-content-ready");
@@ -22,9 +28,11 @@ async function bootstrapCmsContent() {
       heroCopy.style.opacity = "1";
       heroCopy.style.visibility = "visible";
     }
+    window.SMCarsDemoAPI?.applyPublicBookings(bookings);
     return;
   }
   applyCmsContent(content);
+  window.SMCarsDemoAPI?.applyPublicBookings(bookings);
   requestAnimationFrame(() => {
     document.documentElement.classList.remove("cms-hydrating");
     document.documentElement.classList.add("cms-content-ready");
@@ -71,6 +79,30 @@ async function fetchActiveContent() {
   } catch (error) {
     console.error("CMS demo sync failed:", error);
     return null;
+  }
+}
+
+async function fetchPublicBookings() {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_public_booking_ranges`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ p_vehicle_id: null }),
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch (error) {
+    console.error("Booking sync failed:", error);
+    return [];
   }
 }
 

@@ -25,10 +25,18 @@ const state = {
   published: null,
   vehicles: [],
   backups: [],
+  bookings: [],
+  bookingsSchemaReady: true,
   vehicleFilter: "all",
   selectedVehicleId: null,
   modalVehicleDraft: null,
   modalMode: "edit",
+  bookingFilterVehicle: "all",
+  bookingFilterStatus: "all",
+  bookingCalendarMonth: "",
+  selectedBookingId: null,
+  bookingModalDraft: null,
+  bookingModalMode: "edit",
   hasUnsavedChanges: false,
   isHydrating: false,
 };
@@ -125,6 +133,32 @@ function cacheElements() {
   elements.vehicleLuggagePlus = document.getElementById("vehicle-luggage-plus");
   elements.deleteVehicleButton = document.getElementById("delete-vehicle-button");
 
+  elements.bookingSchemaNote = document.getElementById("booking-schema-note");
+  elements.addBookingButton = document.getElementById("add-booking-button");
+  elements.bookingFilterVehicle = document.getElementById("booking-filter-vehicle");
+  elements.bookingFilterStatus = document.getElementById("booking-filter-status");
+  elements.bookingCalendarMonth = document.getElementById("booking-calendar-month");
+  elements.bookingCalendarWeekdays = document.getElementById("booking-calendar-weekdays");
+  elements.bookingCalendarGrid = document.getElementById("booking-calendar-grid");
+  elements.bookingCalendarPrev = document.getElementById("booking-calendar-prev");
+  elements.bookingCalendarNext = document.getElementById("booking-calendar-next");
+  elements.bookingTableBody = document.getElementById("booking-table-body");
+  elements.bookingModal = document.getElementById("booking-modal");
+  elements.bookingVehicleId = document.getElementById("booking-vehicle-id");
+  elements.bookingStartDate = document.getElementById("booking-start-date");
+  elements.bookingEndDate = document.getElementById("booking-end-date");
+  elements.bookingStatus = document.getElementById("booking-status");
+  elements.bookingSource = document.getElementById("booking-source");
+  elements.bookingCustomerName = document.getElementById("booking-customer-name");
+  elements.bookingCustomerEmail = document.getElementById("booking-customer-email");
+  elements.bookingCustomerPhone = document.getElementById("booking-customer-phone");
+  elements.bookingTotalAmount = document.getElementById("booking-total-amount");
+  elements.bookingCurrency = document.getElementById("booking-currency");
+  elements.bookingNotes = document.getElementById("booking-notes");
+  elements.bookingConflictMessage = document.getElementById("booking-conflict-message");
+  elements.bookingModalDoneButton = document.getElementById("booking-modal-done-button");
+  elements.deleteBookingButton = document.getElementById("delete-booking-button");
+
   PRICE_FIELD_MAP.forEach(([, id]) => {
     elements[id] = document.getElementById(id);
   });
@@ -164,9 +198,38 @@ function bindEvents() {
   elements.vehicleImagePicker?.addEventListener("click", () => elements.vehicleImageFile.click());
   elements.vehicleImageFile?.addEventListener("change", uploadVehicleImage);
 
+  elements.addBookingButton?.addEventListener("click", startCreateBooking);
+  elements.bookingFilterVehicle?.addEventListener("change", () => {
+    state.bookingFilterVehicle = elements.bookingFilterVehicle.value;
+    renderBookingsSectionState();
+  });
+  elements.bookingFilterStatus?.addEventListener("change", () => {
+    state.bookingFilterStatus = elements.bookingFilterStatus.value;
+    renderBookingsSectionState();
+  });
+  elements.bookingTableBody?.addEventListener("click", handleBookingTableClick);
+  elements.bookingCalendarPrev?.addEventListener("click", () => {
+    state.bookingCalendarMonth = monthOffsetIso(state.bookingCalendarMonth || toIsoDate(new Date()), -1);
+    renderBookingsCalendar();
+  });
+  elements.bookingCalendarNext?.addEventListener("click", () => {
+    state.bookingCalendarMonth = monthOffsetIso(state.bookingCalendarMonth || toIsoDate(new Date()), 1);
+    renderBookingsCalendar();
+  });
+  elements.bookingCalendarGrid?.addEventListener("click", handleBookingCalendarClick);
+  elements.bookingModalDoneButton?.addEventListener("click", saveBookingModal);
+  elements.deleteBookingButton?.addEventListener("click", deleteSelectedBooking);
+  ["bookingVehicleId", "bookingStartDate", "bookingEndDate", "bookingStatus", "bookingSource"].forEach((key) => {
+    elements[key]?.addEventListener("change", updateBookingConflictMessage);
+  });
+
   document.addEventListener("click", (event) => {
     if (event.target.closest("[data-close-vehicle-modal='true']")) {
       closeVehicleModal();
+    }
+
+    if (event.target.closest("[data-close-booking-modal='true']")) {
+      closeBookingModal();
     }
 
     const restoreButton = event.target.closest("[data-restore-backup-id]");
@@ -178,6 +241,9 @@ function bindEvents() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !elements.vehicleModal.classList.contains("hidden")) {
       closeVehicleModal();
+    }
+    if (event.key === "Escape" && !elements.bookingModal.classList.contains("hidden")) {
+      closeBookingModal();
     }
   });
 
@@ -354,11 +420,41 @@ async function loadSnapshots(options = {}) {
     renderSnapshotState();
     renderBackups(state.backups);
     renderVehicleTable();
+    syncBookingVehicleFilterOptions();
+    await loadBookings();
   } finally {
     if (!silent) {
       setLoading(false);
     }
   }
+}
+
+async function loadBookings() {
+  if (!state.session) return;
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("*")
+    .order("start_date", { ascending: true })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (error.code === "42P01" || /bookings/i.test(error.message || "")) {
+      state.bookingsSchemaReady = false;
+      state.bookings = [];
+      renderBookingsSectionState();
+      return;
+    }
+
+    showToast(`Неуспешно зареждане на резервации: ${error.message}`, true);
+    state.bookings = [];
+    renderBookingsSectionState();
+    return;
+  }
+
+  state.bookingsSchemaReady = true;
+  state.bookings = Array.isArray(data) ? data.map(normalizeBooking) : [];
+  renderBookingsSectionState();
 }
 
 function mergeWithDefaults(content) {
@@ -990,6 +1086,8 @@ function renderVehicleTable() {
     .filter((vehicle) => state.vehicleFilter === "all" || vehicle.mainCategory === state.vehicleFilter)
     .sort((left, right) => (left.sortOrder || 0) - (right.sortOrder || 0));
 
+  syncBookingVehicleFilterOptions();
+
   if (!filtered.length) {
     elements.vehicleTableBody.innerHTML = `
       <tr>
@@ -1020,6 +1118,514 @@ function renderVehicleTable() {
       `;
     })
     .join("");
+}
+
+function renderBookingsSectionState() {
+  elements.bookingSchemaNote?.classList.toggle("hidden", state.bookingsSchemaReady);
+  if (!state.bookingsSchemaReady) {
+    elements.bookingTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="history-empty">Booking schema-та още не е налична за този staging проект.</td>
+      </tr>
+    `;
+    if (elements.bookingCalendarGrid) {
+      elements.bookingCalendarGrid.innerHTML = "";
+    }
+    return;
+  }
+
+  renderBookingsTable();
+  renderBookingsCalendar();
+}
+
+function syncBookingVehicleFilterOptions() {
+  if (!elements.bookingFilterVehicle || !elements.bookingVehicleId) return;
+
+  const options = [...state.vehicles]
+    .sort((left, right) => getVehicleDisplayName(left).localeCompare(getVehicleDisplayName(right), "bg"))
+    .map((vehicle) => ({
+      value: vehicle.id,
+      label: getVehicleDisplayName(vehicle),
+    }));
+
+  const currentFilter = state.bookingFilterVehicle || "all";
+  elements.bookingFilterVehicle.innerHTML = `
+    <option value="all">Всички</option>
+    ${options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("")}
+  `;
+  elements.bookingFilterVehicle.value = options.some((option) => option.value === currentFilter) ? currentFilter : "all";
+  state.bookingFilterVehicle = elements.bookingFilterVehicle.value;
+
+  const currentVehicleId = state.bookingModalDraft?.vehicle_id || "";
+  elements.bookingVehicleId.innerHTML = options
+    .map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`)
+    .join("");
+  if (options.length) {
+    elements.bookingVehicleId.value = options.some((option) => option.value === currentVehicleId)
+      ? currentVehicleId
+      : options[0].value;
+  }
+}
+
+function getFilteredBookings() {
+  return [...state.bookings]
+    .filter((booking) => state.bookingFilterVehicle === "all" || booking.vehicle_id === state.bookingFilterVehicle)
+    .filter((booking) => state.bookingFilterStatus === "all" || booking.status === state.bookingFilterStatus)
+    .sort((left, right) => `${left.start_date}`.localeCompare(`${right.start_date}`));
+}
+
+function renderBookingsTable() {
+  if (!elements.bookingTableBody) return;
+
+  const filtered = getFilteredBookings();
+
+  if (!filtered.length) {
+    elements.bookingTableBody.innerHTML = `
+      <tr>
+        <td colspan="6" class="history-empty">Все още няма добавени резервации.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  elements.bookingTableBody.innerHTML = filtered
+    .map((booking) => {
+      const vehicleName = getVehicleNameById(booking.vehicle_id);
+      const customerLabel = booking.customer_name || booking.customer_email || booking.customer_phone || "-";
+      return `
+        <tr>
+          <td>${escapeHtml(vehicleName)}</td>
+          <td>${escapeHtml(formatBookingRange(booking.start_date, booking.end_date))}</td>
+          <td><span class="status-badge ${escapeHtml(getBookingStatusClass(booking.status))}">${escapeHtml(getBookingStatusLabel(booking.status))}</span></td>
+          <td>${escapeHtml(getBookingSourceLabel(booking.source))}</td>
+          <td>${escapeHtml(customerLabel)}</td>
+          <td>
+            <div class="table-actions">
+              <button type="button" class="button button-secondary" data-booking-action="edit" data-booking-id="${booking.id}">Редактирай</button>
+              <button type="button" class="button button-danger" data-booking-action="remove" data-booking-id="${booking.id}">Премахни</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderBookingsCalendar() {
+  if (!elements.bookingCalendarGrid || !elements.bookingCalendarMonth) return;
+  if (!state.bookingCalendarMonth) {
+    state.bookingCalendarMonth = startOfMonthIso(toIsoDate(new Date()));
+  }
+
+  if (elements.bookingCalendarWeekdays && !elements.bookingCalendarWeekdays.innerHTML.trim()) {
+    elements.bookingCalendarWeekdays.innerHTML = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"]
+      .map((day) => `<span class="booking-calendar-weekday">${escapeHtml(day)}</span>`)
+      .join("");
+  }
+
+  elements.bookingCalendarMonth.textContent = monthLabelFromIso(state.bookingCalendarMonth);
+  const gridStart = startOfCalendarGridIso(state.bookingCalendarMonth);
+  const todayIso = toIsoDate(new Date());
+  const filtered = getFilteredBookings();
+  const cells = [];
+
+  for (let index = 0; index < 42; index += 1) {
+    const dayIso = addDaysToIso(gridStart, index);
+    const dayBookings = filtered.filter((booking) => booking.start_date <= dayIso && booking.end_date >= dayIso);
+    const classes = [
+      "booking-calendar-cell",
+      isSameMonthIso(dayIso, state.bookingCalendarMonth) ? "" : "is-outside-month",
+      dayIso === todayIso ? "is-today" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const bookingMarkup = dayBookings.length
+      ? dayBookings
+          .map((booking) => {
+            const customer = booking.customer_name || getBookingSourceLabel(booking.source);
+            return `
+              <button type="button" class="booking-calendar-booking ${escapeHtml(getBookingStatusClass(booking.status))}" data-booking-id="${escapeHtml(
+                booking.id,
+              )}">
+                <span>
+                  <span class="booking-calendar-booking-name">${escapeHtml(getVehicleNameById(booking.vehicle_id))}</span>
+                  <span class="booking-calendar-booking-meta">${escapeHtml(customer || "-")}</span>
+                </span>
+              </button>
+            `;
+          })
+          .join("")
+      : `<p class="booking-calendar-empty">Свободно</p>`;
+
+    cells.push(`
+      <div class="${classes}" data-calendar-date="${escapeHtml(dayIso)}">
+        <div class="booking-calendar-cell-head">
+          <span class="booking-calendar-day-number">${escapeHtml(String(parseIsoToUtcDate(dayIso)?.getUTCDate() || ""))}</span>
+          <span class="booking-calendar-day-count">${dayBookings.length ? `${dayBookings.length} рез.` : ""}</span>
+        </div>
+        <div class="booking-calendar-bookings">${bookingMarkup}</div>
+      </div>
+    `);
+  }
+
+  elements.bookingCalendarGrid.innerHTML = cells.join("");
+}
+
+function startCreateBooking(prefillStartDate = "", prefillEndDate = "") {
+  if (!state.bookingsSchemaReady) {
+    showToast("Първо пусни booking SQL-а в staging Supabase проекта.", true);
+    return;
+  }
+
+  const firstVehicleId = state.vehicles[0]?.id || "";
+  state.bookingModalMode = "create";
+  state.selectedBookingId = null;
+  state.bookingModalDraft = normalizeBooking({
+    vehicle_id: firstVehicleId,
+    start_date: prefillStartDate || "",
+    end_date: prefillEndDate || prefillStartDate || "",
+    status: "manual",
+    source: "manual_admin",
+    customer_name: "",
+    customer_email: "",
+    customer_phone: "",
+    total_amount: null,
+    currency: "EUR",
+    notes: "",
+  });
+  fillBookingModal(state.bookingModalDraft);
+  openBookingModal();
+}
+
+function handleBookingTableClick(event) {
+  const trigger = event.target.closest("[data-booking-id]");
+  if (!trigger) return;
+  const bookingId = trigger.getAttribute("data-booking-id");
+  const action = trigger.getAttribute("data-booking-action");
+
+  if (action === "edit") {
+    openBookingForEdit(bookingId);
+  } else if (action === "remove") {
+    removeBooking(bookingId);
+  }
+}
+
+function handleBookingCalendarClick(event) {
+  const bookingTrigger = event.target.closest("[data-booking-id]");
+  if (bookingTrigger) {
+    openBookingForEdit(bookingTrigger.getAttribute("data-booking-id"));
+    return;
+  }
+
+  const dayCell = event.target.closest("[data-calendar-date]");
+  if (!dayCell) return;
+  const iso = dayCell.getAttribute("data-calendar-date");
+  if (!iso) return;
+  startCreateBooking(iso, iso);
+}
+
+function openBookingForEdit(bookingId) {
+  const booking = state.bookings.find((entry) => entry.id === bookingId);
+  if (!booking) return;
+
+  state.bookingModalMode = "edit";
+  state.selectedBookingId = bookingId;
+  state.bookingModalDraft = normalizeBooking(booking);
+  fillBookingModal(state.bookingModalDraft);
+  openBookingModal();
+}
+
+function openBookingModal() {
+  elements.bookingModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeBookingModal() {
+  elements.bookingModal.classList.add("hidden");
+  document.body.style.overflow = "";
+  state.bookingModalDraft = null;
+  hideBookingConflictMessage();
+}
+
+function fillBookingModal(booking) {
+  syncBookingVehicleFilterOptions();
+  elements.bookingVehicleId.value = booking.vehicle_id || elements.bookingVehicleId.value || "";
+  elements.bookingStartDate.value = booking.start_date || "";
+  elements.bookingEndDate.value = booking.end_date || "";
+  elements.bookingStatus.value = booking.status || "manual";
+  elements.bookingSource.value = booking.source || "manual_admin";
+  elements.bookingCustomerName.value = booking.customer_name || "";
+  elements.bookingCustomerEmail.value = booking.customer_email || "";
+  elements.bookingCustomerPhone.value = booking.customer_phone || "";
+  elements.bookingTotalAmount.value = booking.total_amount ?? "";
+  elements.bookingCurrency.value = booking.currency || "EUR";
+  elements.bookingNotes.value = booking.notes || "";
+  updateBookingConflictMessage();
+}
+
+async function saveBookingModal() {
+  if (!state.session || !state.bookingsSchemaReady) return;
+
+  hydrateBookingDraftFromModal();
+  if (!state.bookingModalDraft.vehicle_id || !state.bookingModalDraft.start_date || !state.bookingModalDraft.end_date) {
+    showToast("Попълни превозно средство и период за резервацията.", true);
+    return;
+  }
+  if (state.bookingModalDraft.end_date < state.bookingModalDraft.start_date) {
+    showToast("Крайната дата не може да е преди началната.", true);
+    return;
+  }
+  const conflict = findBookingConflict(state.bookingModalDraft, state.selectedBookingId);
+  if (conflict) {
+    updateBookingConflictMessage(conflict);
+    showToast("Избраният период се засича с друга активна резервация.", true);
+    return;
+  }
+
+  const payload = {
+    vehicle_id: state.bookingModalDraft.vehicle_id,
+    start_date: state.bookingModalDraft.start_date,
+    end_date: state.bookingModalDraft.end_date,
+    status: state.bookingModalDraft.status,
+    source: state.bookingModalDraft.source,
+    customer_name: state.bookingModalDraft.customer_name || null,
+    customer_email: state.bookingModalDraft.customer_email || null,
+    customer_phone: state.bookingModalDraft.customer_phone || null,
+    total_amount: state.bookingModalDraft.total_amount ?? null,
+    currency: state.bookingModalDraft.currency || "EUR",
+    notes: state.bookingModalDraft.notes || null,
+    updated_by: state.session.user.email,
+  };
+
+  setLoading(true, "Запазване на резервацията...");
+  try {
+    let error = null;
+
+    if (state.bookingModalMode === "create") {
+      const result = await supabase.from("bookings").insert({
+        ...payload,
+        created_by: state.session.user.email,
+      });
+      error = result.error;
+    } else {
+      const result = await supabase.from("bookings").update(payload).eq("id", state.selectedBookingId);
+      error = result.error;
+    }
+
+    if (error) {
+      showToast(`Неуспешно записване на резервацията: ${error.message}`, true);
+      return;
+    }
+
+    showToast("Резервацията е записана.", false);
+    closeBookingModal();
+    await loadBookings();
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function removeBooking(bookingId) {
+  if (!state.session || !state.bookingsSchemaReady || !bookingId) return;
+
+  setLoading(true, "Премахване на резервацията...");
+  try {
+    const { error } = await supabase.from("bookings").delete().eq("id", bookingId);
+    if (error) {
+      showToast(`Неуспешно премахване на резервацията: ${error.message}`, true);
+      return;
+    }
+
+    showToast("Резервацията е премахната.", false);
+    if (state.selectedBookingId === bookingId) {
+      closeBookingModal();
+      state.selectedBookingId = null;
+    }
+    await loadBookings();
+  } finally {
+    setLoading(false);
+  }
+}
+
+function deleteSelectedBooking() {
+  const targetId = state.bookingModalMode === "create" ? null : state.selectedBookingId;
+  if (!targetId) {
+    closeBookingModal();
+    return;
+  }
+  removeBooking(targetId);
+}
+
+function hydrateBookingDraftFromModal() {
+  if (!state.bookingModalDraft) return;
+  state.bookingModalDraft.vehicle_id = elements.bookingVehicleId.value;
+  state.bookingModalDraft.start_date = elements.bookingStartDate.value;
+  state.bookingModalDraft.end_date = elements.bookingEndDate.value;
+  state.bookingModalDraft.status = elements.bookingStatus.value;
+  state.bookingModalDraft.source = elements.bookingSource.value;
+  state.bookingModalDraft.customer_name = elements.bookingCustomerName.value.trim();
+  state.bookingModalDraft.customer_email = elements.bookingCustomerEmail.value.trim();
+  state.bookingModalDraft.customer_phone = elements.bookingCustomerPhone.value.trim();
+  state.bookingModalDraft.total_amount = elements.bookingTotalAmount.value ? Number(elements.bookingTotalAmount.value) : null;
+  state.bookingModalDraft.currency = (elements.bookingCurrency.value.trim() || "EUR").toUpperCase();
+  state.bookingModalDraft.notes = elements.bookingNotes.value.trim();
+}
+
+function updateBookingConflictMessage(forcedConflict = null) {
+  if (!state.bookingModalDraft) return;
+  hydrateBookingDraftFromModal();
+  const conflict = forcedConflict || findBookingConflict(state.bookingModalDraft, state.selectedBookingId);
+  if (!conflict) {
+    hideBookingConflictMessage();
+    return;
+  }
+
+  const vehicleName = getVehicleNameById(conflict.vehicle_id);
+  elements.bookingConflictMessage.textContent = `Има засичане с активна резервация за ${vehicleName}: ${formatBookingRange(conflict.start_date, conflict.end_date)}.`;
+  elements.bookingConflictMessage.classList.remove("hidden");
+}
+
+function hideBookingConflictMessage() {
+  elements.bookingConflictMessage.textContent = "";
+  elements.bookingConflictMessage.classList.add("hidden");
+}
+
+function findBookingConflict(bookingDraft, excludeId = null) {
+  if (!bookingDraft?.vehicle_id || !bookingDraft?.start_date || !bookingDraft?.end_date) return null;
+  return state.bookings.find((booking) => {
+    if (excludeId && booking.id === excludeId) return false;
+    if (booking.vehicle_id !== bookingDraft.vehicle_id) return false;
+    if (!isBlockingBookingStatus(booking.status)) return false;
+    return booking.start_date <= bookingDraft.end_date && booking.end_date >= bookingDraft.start_date;
+  }) || null;
+}
+
+function normalizeBooking(booking) {
+  return {
+    id: booking.id || "",
+    vehicle_id: booking.vehicle_id || "",
+    start_date: booking.start_date || "",
+    end_date: booking.end_date || booking.start_date || "",
+    status: booking.status || "manual",
+    source: booking.source || "manual_admin",
+    customer_name: booking.customer_name || "",
+    customer_email: booking.customer_email || "",
+    customer_phone: booking.customer_phone || "",
+    total_amount: booking.total_amount === null || booking.total_amount === undefined || booking.total_amount === "" ? null : Number(booking.total_amount),
+    currency: booking.currency || "EUR",
+    notes: booking.notes || "",
+    created_at: booking.created_at || "",
+    updated_at: booking.updated_at || "",
+  };
+}
+
+function getVehicleNameById(vehicleId) {
+  return getVehicleDisplayName(state.vehicles.find((vehicle) => vehicle.id === vehicleId) || { name: vehicleId || "-" });
+}
+
+function padDatePart(value) {
+  return String(value).padStart(2, "0");
+}
+
+function toIsoDate(value) {
+  if (!value) return "";
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+}
+
+function parseIsoToUtcDate(isoDate) {
+  if (!isoDate || !/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) return null;
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function addDaysToIso(isoDate, offset) {
+  const date = parseIsoToUtcDate(isoDate);
+  if (!date) return isoDate;
+  date.setUTCDate(date.getUTCDate() + offset);
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-${padDatePart(date.getUTCDate())}`;
+}
+
+function startOfMonthIso(isoDate) {
+  const date = parseIsoToUtcDate(isoDate);
+  if (!date) return isoDate;
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-01`;
+}
+
+function monthOffsetIso(isoDate, offset) {
+  const date = parseIsoToUtcDate(startOfMonthIso(isoDate));
+  if (!date) return isoDate;
+  date.setUTCMonth(date.getUTCMonth() + offset, 1);
+  return `${date.getUTCFullYear()}-${padDatePart(date.getUTCMonth() + 1)}-01`;
+}
+
+function isSameMonthIso(leftIso, rightIso) {
+  return String(leftIso || "").slice(0, 7) === String(rightIso || "").slice(0, 7);
+}
+
+function startOfCalendarGridIso(monthIso) {
+  const monthStart = parseIsoToUtcDate(startOfMonthIso(monthIso));
+  if (!monthStart) return monthIso;
+  const weekday = monthStart.getUTCDay();
+  const mondayOffset = (weekday + 6) % 7;
+  monthStart.setUTCDate(monthStart.getUTCDate() - mondayOffset);
+  return `${monthStart.getUTCFullYear()}-${padDatePart(monthStart.getUTCMonth() + 1)}-${padDatePart(monthStart.getUTCDate())}`;
+}
+
+function monthLabelFromIso(isoDate) {
+  const date = parseIsoToUtcDate(startOfMonthIso(isoDate));
+  if (!date) return "";
+  return new Intl.DateTimeFormat("bg-BG", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatBookingRange(startDate, endDate) {
+  if (!startDate) return "-";
+  if (!endDate || endDate === startDate) return startDate;
+  return `${startDate} → ${endDate}`;
+}
+
+function getBookingStatusLabel(status) {
+  const labels = {
+    pending: "Pending",
+    paid: "Paid",
+    manual: "Manual",
+    cancelled: "Cancelled",
+    expired: "Expired",
+    refunded: "Refunded",
+  };
+  return labels[status] || status || "-";
+}
+
+function getBookingStatusClass(status) {
+  const classes = {
+    pending: "is-booking-pending",
+    paid: "is-booking-paid",
+    manual: "is-booking-manual",
+    cancelled: "is-booking-cancelled",
+    expired: "is-booking-expired",
+    refunded: "is-booking-refunded",
+  };
+  return classes[status] || "";
+}
+
+function getBookingSourceLabel(source) {
+  const labels = {
+    website: "Website",
+    phone: "Телефон",
+    email: "Имейл",
+    manual_admin: "Admin",
+  };
+  return labels[source] || source || "-";
+}
+
+function isBlockingBookingStatus(status) {
+  return ["paid", "manual"].includes(status);
 }
 
 function getVehicleDisplayName(vehicle) {
@@ -1070,7 +1676,9 @@ function toggleCarClassField(mainCategory) {
 
 function normalizeVehicle(vehicle) {
   const normalized = structuredClone(vehicle);
-  normalized.id = normalized.id || `vehicle-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+  normalized.id =
+    normalized.id ||
+    slugify(`${normalized.mainCategory || "vehicle"}-${normalized.name || ""}-${normalized.brand || ""}-${normalized.model || ""}`);
   normalized.sortOrder = Number(normalized.sortOrder || 0);
   normalized.isAvailable = normalized.isAvailable !== false;
   normalized.gearbox = normalized.gearbox || "manual";
@@ -1208,7 +1816,7 @@ function ensureTermsNumbering(items) {
 
 function handleDraftMutation(event) {
   if (state.isHydrating || !state.session) return;
-  if (!event.target.closest("#dashboard") && !event.target.closest("#vehicle-modal")) return;
+  if (!event.target.closest("#dashboard") && !event.target.closest("#vehicle-modal") && !event.target.closest("#booking-modal")) return;
   state.hasUnsavedChanges = true;
 }
 
@@ -1246,9 +1854,15 @@ function resetState() {
   state.published = null;
   state.vehicles = [];
   state.backups = [];
+  state.bookings = [];
+  state.bookingsSchemaReady = true;
   state.vehicleFilter = "all";
+  state.bookingFilterVehicle = "all";
+  state.bookingFilterStatus = "all";
   state.selectedVehicleId = null;
+  state.selectedBookingId = null;
   state.modalVehicleDraft = null;
+  state.bookingModalDraft = null;
   state.hasUnsavedChanges = false;
   state.isHydrating = false;
   resetForms();
@@ -1258,9 +1872,15 @@ function resetForms() {
   hydrateForms(DEFAULT_CMS_CONTENT);
   state.vehicles = structuredClone(DEFAULT_CMS_CONTENT.vehicles).map(normalizeVehicle);
   state.backups = [];
+  state.bookings = [];
   state.vehicleFilter = "all";
+  state.bookingFilterVehicle = "all";
+  state.bookingFilterStatus = "all";
   elements.vehicleFilterCategory.value = "all";
+  if (elements.bookingFilterVehicle) elements.bookingFilterVehicle.value = "all";
+  if (elements.bookingFilterStatus) elements.bookingFilterStatus.value = "all";
   renderVehicleTable();
+  renderBookingsSectionState();
   renderBackups([]);
   elements.publishedStatus.textContent = "Няма публикувана версия";
 }

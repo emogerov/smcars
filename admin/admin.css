@@ -458,8 +458,190 @@ body.theme-light .media-picker {
 
 .status-badge.is-available { color: var(--success); }
 .status-badge.is-hidden { color: var(--danger); }
+.status-badge.is-booking-paid,
+.status-badge.is-booking-manual { color: var(--success); }
+.status-badge.is-booking-pending { color: var(--primary); }
+.status-badge.is-booking-cancelled,
+.status-badge.is-booking-expired,
+.status-badge.is-booking-refunded { color: var(--danger); }
 
 .table-actions .button { padding: 0.55rem 0.8rem; }
+
+.booking-schema-note,
+.booking-conflict-message {
+  margin: 1rem 0 0;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--muted);
+}
+
+.booking-conflict-message {
+  color: #fecaca;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.booking-calendar-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.booking-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.booking-calendar-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.booking-calendar-month {
+  min-width: 9rem;
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
+.booking-calendar-weekdays,
+.booking-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.booking-calendar-weekday {
+  padding: 0.2rem 0;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.booking-calendar-cell {
+  min-height: 124px;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.booking-calendar-cell.is-outside-month {
+  opacity: 0.5;
+}
+
+.booking-calendar-cell.is-today {
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.16);
+}
+
+.booking-calendar-cell-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.booking-calendar-day-number {
+  font-weight: 800;
+}
+
+.booking-calendar-day-count {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.booking-calendar-bookings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.booking-calendar-empty {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.booking-calendar-booking {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  text-align: left;
+  background: rgba(31, 41, 55, 0.88);
+  color: #f9fafb;
+}
+
+body.theme-light .booking-calendar-booking {
+  background: #f8fafc;
+  color: #111827;
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+.booking-calendar-booking:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
+.booking-calendar-booking.is-booking-paid,
+.booking-calendar-booking.is-booking-manual {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: rgba(16, 185, 129, 0.14);
+}
+
+body.theme-light .booking-calendar-booking.is-booking-paid,
+body.theme-light .booking-calendar-booking.is-booking-manual {
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.booking-calendar-booking.is-booking-pending {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.14);
+}
+
+body.theme-light .booking-calendar-booking.is-booking-pending {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.booking-calendar-booking.is-booking-cancelled,
+.booking-calendar-booking.is-booking-expired,
+.booking-calendar-booking.is-booking-refunded {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.14);
+}
+
+body.theme-light .booking-calendar-booking.is-booking-cancelled,
+body.theme-light .booking-calendar-booking.is-booking-expired,
+body.theme-light .booking-calendar-booking.is-booking-refunded {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.booking-calendar-booking-name {
+  display: block;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.booking-calendar-booking-meta {
+  display: block;
+  color: inherit;
+  opacity: 0.72;
+  font-size: 0.75rem;
+}
 
 .instructions-steps,
 .instructions-bullets {
@@ -584,5 +766,15 @@ body.theme-light .media-picker {
     right: 1rem;
     bottom: 1rem;
     max-width: none;
+  }
+
+  .booking-calendar-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .booking-calendar-weekdays,
+  .booking-calendar-grid {
+    min-width: 700px;
   }
 }

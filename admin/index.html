@@ -6,7 +6,7 @@
   <title>SM Cars Админ панел</title>
   <meta name="robots" content="noindex,nofollow" />
   <link rel="icon" type="image/svg+xml" href="../assets/logo-dark.svg" />
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin.css?v=20260514-bookings3" />
 </head>
 <body>
   <div id="page-top"></div>
@@ -26,6 +26,7 @@
         <a href="#section-hero" class="nav-link">Hero</a>
         <a href="#section-settings" class="nav-link">Контакти</a>
         <a href="#section-vehicles" class="nav-link">Превозни средства</a>
+        <a href="#section-bookings" class="nav-link">Резервации</a>
         <a href="#section-seasonal" class="nav-link">Сезонни цени</a>
         <a href="#section-shuttle" class="nav-link">Shuttle трансфер</a>
         <a href="#section-terms" class="nav-link">Условия</a>
@@ -260,6 +261,85 @@
           </div>
         </div>
 
+        <div class="panel" id="section-bookings">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Резервации</p>
+              <h2>Списък и офлайн въвеждане</h2>
+            </div>
+            <div class="toolbar">
+              <button type="button" class="button button-primary" id="add-booking-button">Добави резервация</button>
+            </div>
+          </div>
+
+          <p class="helper">
+            Тук добавяш офлайн резервации по телефон, имейл или ръчно през админ панела. В следващата фаза тези записи ще захранват
+            календара на сайта и ще блокират вече заетите дати.
+          </p>
+
+          <div class="booking-schema-note hidden" id="booking-schema-note">
+            Липсва booking schema в Supabase. Пусни файла <span class="code">admin/supabase-bookings.sql</span> в SQL Editor на staging проекта.
+          </div>
+
+          <div class="subpanel booking-calendar-panel">
+            <div class="booking-calendar-header">
+              <div>
+                <p class="eyebrow">Календар</p>
+                <h3>Месечен изглед по дни</h3>
+              </div>
+              <div class="toolbar">
+                <button type="button" class="button button-secondary button-icon-only" id="booking-calendar-prev" aria-label="Предишен месец">‹</button>
+                <p class="booking-calendar-month" id="booking-calendar-month">Месец</p>
+                <button type="button" class="button button-secondary button-icon-only" id="booking-calendar-next" aria-label="Следващ месец">›</button>
+              </div>
+            </div>
+            <div class="booking-calendar-weekdays" id="booking-calendar-weekdays"></div>
+            <div class="booking-calendar-grid" id="booking-calendar-grid"></div>
+          </div>
+
+          <div class="table-toolbar">
+            <label class="field field-inline">
+              <span>Превозно средство</span>
+              <select id="booking-filter-vehicle">
+                <option value="all">Всички</option>
+              </select>
+            </label>
+
+            <label class="field field-inline">
+              <span>Статус</span>
+              <select id="booking-filter-status">
+                <option value="all">Всички</option>
+                <option value="pending">Pending</option>
+                <option value="paid">Paid</option>
+                <option value="manual">Manual</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="expired">Expired</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="history-table-wrap">
+            <table class="history-table bookings-table">
+              <thead>
+                <tr>
+                  <th>Превозно средство</th>
+                  <th>Период</th>
+                  <th>Статус</th>
+                  <th>Източник</th>
+                  <th>Клиент</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="booking-table-body">
+                <tr>
+                  <td colspan="6" class="history-empty">Все още няма добавени резервации.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="panel" id="section-seasonal">
           <div class="panel-header">
             <div>
@@ -422,6 +502,7 @@
                 <li><strong>Hero</strong> променя заглавията, ценовия текст и фона в началния екран. Смяната на видео или изображение става с натискане върху самия preview блок.</li>
                 <li><strong>Контакти</strong> променя телефон, имейл, адрес и Google Maps картата.</li>
                 <li><strong>Превозни средства</strong> променя наличности, снимки, цени и данни за отделните превозни средства. Нов запис се добавя едва след <strong>Запази записа</strong> в модала.</li>
+                <li><strong>Резервации</strong> пази офлайн и бъдещи online booking записи. Тук ще добавяш ръчно заети периоди, които по-късно ще се виждат и в календара на сайта.</li>
                 <li><strong>Сезонни цени</strong> добавя надценки по категории за зададени периоди. Надценката се прилага към 24 часа, 2-6, 7-14 и 14-30 дни.</li>
                 <li><strong>Shuttle трансфер</strong> променя маршрутите и цените за летищните трансфери.</li>
                 <li><strong>Условия</strong> променя текста в модала с условия за наем.</li>
@@ -590,6 +671,97 @@
     </div>
   </div>
 
+  <div id="booking-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close-booking-modal="true"></div>
+    <div class="modal-dialog">
+      <div class="panel modal-panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Резервация</p>
+            <h2>Редакция на запис</h2>
+          </div>
+          <button type="button" class="button button-secondary" data-close-booking-modal="true">Отказ</button>
+        </div>
+
+        <div class="form-grid">
+          <label class="field field-wide">
+            <span>Превозно средство</span>
+            <select id="booking-vehicle-id"></select>
+          </label>
+
+          <label class="field">
+            <span>От дата</span>
+            <input id="booking-start-date" type="date" />
+          </label>
+
+          <label class="field">
+            <span>До дата</span>
+            <input id="booking-end-date" type="date" />
+          </label>
+
+          <label class="field">
+            <span>Статус</span>
+            <select id="booking-status">
+              <option value="manual">Manual</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="expired">Expired</option>
+              <option value="refunded">Refunded</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Източник</span>
+            <select id="booking-source">
+              <option value="manual_admin">Admin</option>
+              <option value="phone">Телефон</option>
+              <option value="email">Имейл</option>
+              <option value="website">Website</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Име на клиент</span>
+            <input id="booking-customer-name" type="text" />
+          </label>
+
+          <label class="field">
+            <span>Имейл</span>
+            <input id="booking-customer-email" type="email" />
+          </label>
+
+          <label class="field">
+            <span>Телефон</span>
+            <input id="booking-customer-phone" type="text" />
+          </label>
+
+          <label class="field">
+            <span>Сума</span>
+            <input id="booking-total-amount" type="number" min="0" step="0.01" />
+          </label>
+
+          <label class="field">
+            <span>Валута</span>
+            <input id="booking-currency" type="text" value="EUR" />
+          </label>
+
+          <label class="field field-wide">
+            <span>Бележки</span>
+            <textarea id="booking-notes" rows="4"></textarea>
+          </label>
+        </div>
+
+        <div class="booking-conflict-message hidden" id="booking-conflict-message"></div>
+
+        <div class="modal-actions">
+          <button type="button" class="button button-danger" id="delete-booking-button">Премахни</button>
+          <button type="button" class="button button-primary" id="booking-modal-done-button">Запази резервацията</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="loader-overlay hidden" id="loader-overlay" aria-live="polite" aria-busy="true">
     <div class="loader-box">
       <div class="loader-spinner"></div>
@@ -599,6 +771,6 @@
 
   <div class="status-toast hidden" id="dashboard-message"></div>
 
-  <script type="module" src="admin.js"></script>
+  <script type="module" src="admin.js?v=20260514-bookings3"></script>
 </body>
 </html>
