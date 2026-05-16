@@ -1699,6 +1699,72 @@ function initReserveModal() {
   });
 }
 
+function initContactReserveModal() {
+  if (document.getElementById("contact-reserve-modal")) return;
+
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    `<div id="contact-reserve-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-6">
+      <button type="button" data-close-contact-reserve-modal="true" class="absolute inset-0 bg-background/80 backdrop-blur-xl" aria-label="${UI_TEXT.closeLabel}"></button>
+      <div class="relative w-full max-w-md rounded-lg border border-border bg-card p-6 card-glow">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="font-heading text-xl font-bold text-foreground">${UI_TEXT.modalTitle}</h3>
+          <button type="button" data-close-contact-reserve-modal="true" class="w-9 h-9 rounded-md flex items-center justify-center bg-secondary text-secondary-foreground hover:bg-accent transition-colors" aria-label="${UI_TEXT.closeLabel}">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div class="flex flex-col gap-3">
+          <a href="${RESERVE_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+            <i data-lucide="phone" class="w-4 h-4"></i>
+            ${UI_TEXT.callLabel}
+          </a>
+          <a href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            ${UI_TEXT.emailLabel}
+          </a>
+        </div>
+      </div>
+    </div>`,
+  );
+
+  const modal = document.getElementById("contact-reserve-modal");
+  if (!modal) return;
+
+  const openModal = () => {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+    document.body.style.overflow = "hidden";
+    refreshIcons();
+  };
+
+  const closeModal = () => {
+    modal.classList.remove("flex");
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  };
+
+  document.addEventListener("click", (event) => {
+    const openTrigger = event.target.closest("[data-open-contact-reserve-modal='true']");
+    if (openTrigger) {
+      event.preventDefault();
+      openModal();
+      return;
+    }
+
+    const closeTrigger = event.target.closest("[data-close-contact-reserve-modal='true']");
+    if (closeTrigger) {
+      event.preventDefault();
+      closeModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.classList.contains("hidden")) {
+      closeModal();
+    }
+  });
+}
+
 function initTermsModal() {
   const modal = document.getElementById("terms-modal");
   if (!modal) return;
@@ -1854,6 +1920,7 @@ function init() {
   initGearboxFilters();
   initMobileMenu();
   initReserveModal();
+  initContactReserveModal();
   initTermsModal();
   showMainCategories();
 }
