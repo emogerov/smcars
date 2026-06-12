@@ -311,11 +311,7 @@ Deno.serve(async (request) => {
     if (attachError) {
       await supabaseAdmin
         .from("bookings")
-        .update({
-          status: "expired",
-          expires_at: null,
-          updated_by: "stripe_checkout",
-        })
+        .delete()
         .eq("id", pendingBooking.id);
       return errorResponse("Checkout session could not be linked to the booking.", 500);
     }

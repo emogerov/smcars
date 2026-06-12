@@ -61,11 +61,7 @@ Deno.serve(async (request) => {
       if (bookingId) {
         await supabaseAdmin
           .from("bookings")
-          .update({
-            status: "expired",
-            expires_at: null,
-            updated_by: "stripe_webhook",
-          })
+          .delete()
           .eq("id", bookingId)
           .eq("status", "pending");
       }

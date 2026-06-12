@@ -14,12 +14,7 @@ as $$
 declare
   affected_count integer := 0;
 begin
-  update public.bookings
-  set
-    status = 'expired',
-    expires_at = null,
-    updated_at = now(),
-    updated_by = 'stripe_expiry'
+  delete from public.bookings
   where status = 'pending'
     and expires_at is not null
     and expires_at <= now();

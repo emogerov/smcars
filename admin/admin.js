@@ -453,7 +453,11 @@ async function loadBookings() {
   }
 
   state.bookingsSchemaReady = true;
-  state.bookings = Array.isArray(data) ? data.map(normalizeBooking) : [];
+  state.bookings = Array.isArray(data)
+    ? data
+        .map(normalizeBooking)
+        .filter((booking) => !["pending", "expired"].includes(String(booking.status || "").toLowerCase()))
+    : [];
   renderBookingsSectionState();
 }
 
