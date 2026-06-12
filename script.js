@@ -71,9 +71,21 @@ function slugifyValue(value) {
 }
 
 function normalizeVehicleRecord(vehicle, index = 0) {
+  const isToyotaSequoia =
+    String(vehicle.brand || "").toLowerCase() === "toyota" &&
+    String(vehicle.model || "").toLowerCase() === "sequoia platinum 5.7i v8";
+
+  const specialNotice = vehicle.specialNotice || (isToyotaSequoia
+    ? {
+        bg: "\u0421\u0430\u043c\u043e \u0441 \u0448\u043e\u0444\u044c\u043e\u0440, \u043e\u0441\u0438\u0433\u0443\u0440\u0435\u043d \u043e\u0442 \u043d\u0430\u0441 (\u0437\u0430 \u0441\u0432\u0430\u0442\u0431\u0438, \u043a\u0440\u044a\u0449\u0435\u043d\u0435\u0442\u0430 \u0438 \u0434\u0440.)",
+        en: "Available only with a driver provided by us (for weddings, christenings, etc.)",
+      }
+    : null);
+
   return {
     ...vehicle,
     id: vehicle.id || slugifyValue(`${vehicle.mainCategory || "vehicle"}-${vehicle.name || ""}-${vehicle.brand || ""}-${vehicle.model || ""}`),
+    specialNotice,
   };
 }
 
@@ -550,6 +562,30 @@ function getVehicleDisplayName(vehicle) {
   return [vehicle.brand, vehicle.model].filter(Boolean).join(" ").trim();
 }
 
+function localizeVehicleSpecialNotice(vehicle) {
+  const notice = vehicle?.specialNotice;
+  if (!notice) return "";
+  if (typeof notice === "string") return notice;
+  return IS_EN ? notice.en || notice.bg || "" : notice.bg || notice.en || "";
+}
+
+function renderVehicleSpecialNotice(vehicle) {
+  const notice = localizeVehicleSpecialNotice(vehicle).trim();
+  if (!notice) return "";
+
+  const match = notice.match(/^(.*?)(\s*\(.+\))$/);
+  const primaryLine = escapeHtml(match ? match[1].trim() : notice);
+  const secondaryLine = match ? `<span class="vehicle-special-notice-subline">${escapeHtml(match[2].trim())}</span>` : "";
+
+  return `<div class="vehicle-special-notice">
+    <i data-lucide="triangle-alert" class="vehicle-special-notice-icon" aria-hidden="true"></i>
+    <div class="vehicle-special-notice-copy">
+      <span>${primaryLine}</span>
+      ${secondaryLine}
+    </div>
+  </div>`;
+}
+
 function refreshIcons() {
   if (window.lucide && typeof window.lucide.createIcons === "function") {
     window.lucide.createIcons();
@@ -999,6 +1035,7 @@ function renderVehicleCard(vehicle, index) {
   const todayNoticeHtml = bookedToday
     ? `<div class="mb-4 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm text-primary font-medium">${escapeHtml(UI_TEXT.bookingBusyToday)}</div>`
     : "";
+  const specialNoticeHtml = renderVehicleSpecialNotice(vehicle);
   const specsHtml =
     vehicle.mainCategory === "motor"
       ? ""
@@ -1023,6 +1060,7 @@ function renderVehicleCard(vehicle, index) {
 
       <div class="p-5 flex-1 flex flex-col">
         ${todayNoticeHtml}
+        ${specialNoticeHtml}
         ${specsHtml}
 
         <div class="space-y-3 mb-4">

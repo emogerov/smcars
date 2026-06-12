@@ -504,6 +504,10 @@ export const DEFAULT_CMS_VEHICLES = [
     "gearboxLabel": "Автоматик",
     "seats": "6+1",
     "image": "assets/cars/toyota-sequoia.jpeg",
+    "specialNotice": {
+      "bg": "\u0421\u0430\u043c\u043e \u0441 \u0448\u043e\u0444\u044c\u043e\u0440, \u043e\u0441\u0438\u0433\u0443\u0440\u0435\u043d \u043e\u0442 \u043d\u0430\u0441 (\u0437\u0430 \u0441\u0432\u0430\u0442\u0431\u0438, \u043a\u0440\u044a\u0449\u0435\u043d\u0435\u0442\u0430 \u0438 \u0434\u0440.)",
+      "en": "Available only with a driver provided by us (for weddings, christenings, etc.)"
+    },
     "depositText": "1000€",
     "prices": [
       {
