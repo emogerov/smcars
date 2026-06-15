@@ -61,6 +61,7 @@ export const DEFAULT_CMS_CONTENT = {
   siteSettings: {
     companyName: "SM Cars",
     phone: "+359894428975",
+    secondPhone: "+359893923428",
     email: "smcarsltd3@gmail.com",
     address: {
       bg: "бул. Велики Преслав 234\nгр. Шумен; кв. Дивдядово",

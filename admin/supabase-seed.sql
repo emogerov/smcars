@@ -19,6 +19,7 @@ values
       "siteSettings": {
         "companyName": "SM Cars",
         "phone": "+359894428975",
+        "secondPhone": "+359893923428",
         "email": "smcarsltd3@gmail.com",
         "address": {
           "bg": "бул. Велики Преслав 234, кв. Дивдядово, Шумен",
@@ -123,6 +124,7 @@ values
       "siteSettings": {
         "companyName": "SM Cars",
         "phone": "+359894428975",
+        "secondPhone": "+359893923428",
         "email": "smcarsltd3@gmail.com",
         "address": {
           "bg": "бул. Велики Преслав 234, кв. Дивдядово, Шумен",

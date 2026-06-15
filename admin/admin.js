@@ -74,6 +74,7 @@ function cacheElements() {
 
   elements.companyName = document.getElementById("company-name");
   elements.phone = document.getElementById("phone");
+  elements.secondPhone = document.getElementById("second-phone");
   elements.contactEmail = document.getElementById("contact-email");
   elements.addressBg = document.getElementById("address-bg");
   elements.addressEn = document.getElementById("address-en");
@@ -556,6 +557,7 @@ function hydrateForms(content) {
 
   elements.companyName.value = content.siteSettings?.companyName || "";
   elements.phone.value = content.siteSettings?.phone || "";
+  elements.secondPhone.value = content.siteSettings?.secondPhone || "";
   elements.contactEmail.value = content.siteSettings?.email || "";
   elements.addressBg.value = content.siteSettings?.address?.bg || "";
   elements.addressEn.value = content.siteSettings?.address?.en || "";
@@ -588,6 +590,7 @@ function buildDraftContent() {
     ...(base.siteSettings || {}),
     companyName: elements.companyName.value.trim(),
     phone: elements.phone.value.trim(),
+    secondPhone: elements.secondPhone.value.trim(),
     email: elements.contactEmail.value.trim(),
     address: {
       bg: elements.addressBg.value.trim(),

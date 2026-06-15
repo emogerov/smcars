@@ -117,7 +117,7 @@ function applyCmsContent(content) {
   updateHeroMedia(hero.media || {});
   updateAddress(settings.address?.[lang]);
   updateMapEmbed(settings.googleMapsEmbedUrl);
-  updatePhoneAndEmail(settings.phone, settings.email);
+  updatePhoneAndEmail(settings.phone, settings.secondPhone, settings.email);
   updateShuttleRoutes(content.shuttleRoutes || [], lang);
   const terms = content.rentalTerms?.[lang];
   const resolvedTerms = shouldUseDefaultTerms(terms) ? DEFAULT_CMS_CONTENT.rentalTerms[lang] || [] : terms || [];
@@ -193,14 +193,12 @@ function updateMapEmbed(url) {
   iframe.src = url;
 }
 
-function updatePhoneAndEmail(phone, email) {
-  if (phone) {
-    const href = `tel:${phone.replace(/\s+/g, "")}`;
-    document.querySelectorAll("a[href^='tel:']").forEach((link) => {
-      link.href = href;
-      link.textContent = phone;
-    });
+function updatePhoneAndEmail(phone, secondPhone, email) {
+  if (window.SMCarsDemoAPI?.updateRuntimeContactPhones) {
+    window.SMCarsDemoAPI.updateRuntimeContactPhones(phone, secondPhone);
   }
+  updatePhoneLink(document.getElementById("cms-phone-link"), phone);
+  updatePhoneLink(document.getElementById("cms-second-phone-link"), secondPhone);
 
   if (email) {
     document.querySelectorAll("a[href^='mailto:']").forEach((link) => {
@@ -209,6 +207,12 @@ function updatePhoneAndEmail(phone, email) {
       link.textContent = email;
     });
   }
+}
+
+function updatePhoneLink(link, phone) {
+  if (!link || !phone) return;
+  link.href = `tel:${phone.replace(/\s+/g, "")}`;
+  link.textContent = phone;
 }
 
 function updateShuttleRoutes(routes, lang) {
