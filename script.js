@@ -1,6 +1,10 @@
 const SITE_LANG = document.documentElement.lang?.toLowerCase().startsWith("en") ? "en" : "bg";
 const IS_EN = SITE_LANG === "en";
-const RESERVE_PHONE_HREF = "tel:+359894428975";
+const PRIMARY_PHONE_LABEL = "+359 89 442 8975";
+const PRIMARY_PHONE_HREF = "tel:+359894428975";
+const SECONDARY_PHONE_LABEL = "+359 89 392 3428";
+const SECONDARY_PHONE_HREF = "tel:+359893923428";
+const RESERVE_PHONE_HREF = PRIMARY_PHONE_HREF;
 const RESERVE_EMAIL_HREF = IS_EN
   ? "mailto:smcarsltd3@gmail.com?subject=Reservation%20request"
   : "mailto:smcarsltd3@gmail.com?subject=Запитване%20за%20резервация";
@@ -1752,9 +1756,13 @@ function initContactReserveModal() {
           </button>
         </div>
         <div class="flex flex-col gap-3">
-          <a href="${RESERVE_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a href="${PRIMARY_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="phone" class="w-4 h-4"></i>
-            ${UI_TEXT.callLabel}
+            ${UI_TEXT.callLabel}: ${PRIMARY_PHONE_LABEL}
+          </a>
+          <a href="${SECONDARY_PHONE_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+            <i data-lucide="phone" class="w-4 h-4"></i>
+            ${UI_TEXT.callLabel}: ${SECONDARY_PHONE_LABEL}
           </a>
           <a href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="mail" class="w-4 h-4"></i>
