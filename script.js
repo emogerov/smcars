@@ -4,13 +4,13 @@ const PRIMARY_PHONE_LABEL = "+359 89 442 8975";
 const PRIMARY_PHONE_HREF = "tel:+359894428975";
 const SECONDARY_PHONE_LABEL = "+359 89 392 3428";
 const SECONDARY_PHONE_HREF = "tel:+359893923428";
+const DEFAULT_CONTACT_EMAIL = "smcarsltd3@gmail.com";
 let currentPrimaryPhoneLabel = PRIMARY_PHONE_LABEL;
 let currentPrimaryPhoneHref = PRIMARY_PHONE_HREF;
 let currentSecondaryPhoneLabel = SECONDARY_PHONE_LABEL;
 let currentSecondaryPhoneHref = SECONDARY_PHONE_HREF;
-const RESERVE_EMAIL_HREF = IS_EN
-  ? "mailto:smcarsltd3@gmail.com?subject=Reservation%20request"
-  : "mailto:smcarsltd3@gmail.com?subject=Запитване%20за%20резервация";
+let currentContactEmailLabel = DEFAULT_CONTACT_EMAIL;
+let currentReserveEmailHref = buildReserveEmailHref(DEFAULT_CONTACT_EMAIL);
 // For manual testing, set e.g. "2026-12-05". Keep null for real current date.
 const PRICE_TEST_DATE = null;
 const STRIPE_CHECKOUT_PLACEHOLDER = "#stripe-checkout";
@@ -573,15 +573,35 @@ function buildTelHref(phone) {
   return `tel:${String(phone || "").replace(/\s+/g, "")}`;
 }
 
+function formatPhoneDisplay(phone) {
+  const compact = String(phone || "").replace(/[^\d+]/g, "");
+  if (/^\+359\d{9}$/.test(compact)) {
+    return `${compact.slice(0, 4)} ${compact.slice(4, 6)} ${compact.slice(6, 9)} ${compact.slice(9)}`;
+  }
+  return String(phone || "").trim().replace(/\s+/g, " ");
+}
+
+function buildReserveEmailHref(email) {
+  return IS_EN
+    ? `mailto:${email}?subject=Reservation%20request`
+    : `mailto:${email}?subject=${encodeURIComponent("Запитване за резервация")}`;
+}
+
 function updateRuntimeContactPhones(primaryPhone, secondaryPhone) {
   if (primaryPhone) {
-    currentPrimaryPhoneLabel = primaryPhone;
+    currentPrimaryPhoneLabel = formatPhoneDisplay(primaryPhone);
     currentPrimaryPhoneHref = buildTelHref(primaryPhone);
   }
   if (secondaryPhone) {
-    currentSecondaryPhoneLabel = secondaryPhone;
+    currentSecondaryPhoneLabel = formatPhoneDisplay(secondaryPhone);
     currentSecondaryPhoneHref = buildTelHref(secondaryPhone);
   }
+}
+
+function updateRuntimeContactEmail(email) {
+  if (!email) return;
+  currentContactEmailLabel = String(email).trim();
+  currentReserveEmailHref = buildReserveEmailHref(currentContactEmailLabel);
 }
 
 function localizeVehicleSpecialNotice(vehicle) {
@@ -818,7 +838,7 @@ function buildBookingEmailHref(vehicle, startDate, endDate) {
   const body = IS_EN
     ? `Vehicle: ${getVehicleDisplayName(vehicle)}%0AFrom: ${startDate}%0ATo: ${endDate}`
     : `Превозно средство: ${getVehicleDisplayName(vehicle)}%0AОт: ${startDate}%0AДо: ${endDate}`;
-  return `mailto:smcarsltd3@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+  return `mailto:${currentContactEmailLabel}?subject=${encodeURIComponent(subject)}&body=${body}`;
 }
 
 function parsePriceNumber(value) {
@@ -1399,17 +1419,17 @@ function initReserveModal() {
             ${UI_TEXT.bookingPaymentLabel}
           </a>
           <p class="text-center text-sm font-medium text-muted-foreground">${UI_TEXT.bookingOr}</p>
-          <a id="reserve-phone-link-primary" href="${currentPrimaryPhoneHref}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a id="reserve-phone-link-primary" href="${currentPrimaryPhoneHref}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="phone" class="w-4 h-4"></i>
-            <span id="reserve-phone-label-primary">${UI_TEXT.callLabel}: ${escapeHtml(currentPrimaryPhoneLabel)}</span>
+            <span id="reserve-phone-label-primary">${escapeHtml(currentPrimaryPhoneLabel)}</span>
           </a>
-          <a id="reserve-phone-link-secondary" href="${currentSecondaryPhoneHref}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a id="reserve-phone-link-secondary" href="${currentSecondaryPhoneHref}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="phone" class="w-4 h-4"></i>
-            <span id="reserve-phone-label-secondary">${UI_TEXT.callLabel}: ${escapeHtml(currentSecondaryPhoneLabel)}</span>
+            <span id="reserve-phone-label-secondary">${escapeHtml(currentSecondaryPhoneLabel)}</span>
           </a>
-          <a id="reserve-email-link" href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a id="reserve-email-link" href="${currentReserveEmailHref}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="mail" class="w-4 h-4"></i>
-            ${UI_TEXT.emailLabel}
+            <span id="reserve-email-label">${escapeHtml(currentContactEmailLabel)}</span>
           </a>
         </div>
       </div>
@@ -1437,12 +1457,15 @@ function initReserveModal() {
   const secondaryPhoneLink = document.getElementById("reserve-phone-link-secondary");
   const secondaryPhoneLabel = document.getElementById("reserve-phone-label-secondary");
   const emailLink = document.getElementById("reserve-email-link");
+  const emailLabel = document.getElementById("reserve-email-label");
 
   const syncReserveContactLinks = () => {
     if (primaryPhoneLink) primaryPhoneLink.href = currentPrimaryPhoneHref;
-    if (primaryPhoneLabel) primaryPhoneLabel.textContent = `${UI_TEXT.callLabel}: ${currentPrimaryPhoneLabel}`;
+    if (primaryPhoneLabel) primaryPhoneLabel.textContent = currentPrimaryPhoneLabel;
     if (secondaryPhoneLink) secondaryPhoneLink.href = currentSecondaryPhoneHref;
-    if (secondaryPhoneLabel) secondaryPhoneLabel.textContent = `${UI_TEXT.callLabel}: ${currentSecondaryPhoneLabel}`;
+    if (secondaryPhoneLabel) secondaryPhoneLabel.textContent = currentSecondaryPhoneLabel;
+    if (emailLink) emailLink.href = currentReserveEmailHref;
+    if (emailLabel) emailLabel.textContent = currentContactEmailLabel;
   };
   let checkoutInFlight = false;
 
@@ -1575,7 +1598,7 @@ function initReserveModal() {
       totalPrice.textContent = UI_TEXT.bookingTotalPending;
       totalPrice.className = "text-sm font-bold text-primary";
       setPaymentLinkDisabled(true);
-      emailLink.href = RESERVE_EMAIL_HREF;
+      emailLink.href = currentReserveEmailHref;
       return;
     }
 
@@ -1585,7 +1608,7 @@ function initReserveModal() {
     bookedRanges.innerHTML = renderBookedRanges(vehicle.id);
 
     const hasConflict = hasBookingConflict(vehicle.id, effectiveStart, effectiveEnd);
-    emailLink.href = effectiveStart && effectiveEnd ? buildBookingEmailHref(vehicle, effectiveStart, effectiveEnd) : RESERVE_EMAIL_HREF;
+    emailLink.href = effectiveStart && effectiveEnd ? buildBookingEmailHref(vehicle, effectiveStart, effectiveEnd) : currentReserveEmailHref;
 
     if (!effectiveStart || !effectiveEnd) {
       availabilityMessage.textContent = UI_TEXT.bookingSelectDates;
@@ -1790,17 +1813,17 @@ function initContactReserveModal() {
           </button>
         </div>
         <div class="flex flex-col gap-3">
-          <a id="contact-phone-link-primary" href="${currentPrimaryPhoneHref}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a id="contact-phone-link-primary" href="${currentPrimaryPhoneHref}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="phone" class="w-4 h-4"></i>
-            <span id="contact-phone-label-primary">${UI_TEXT.callLabel}: ${escapeHtml(currentPrimaryPhoneLabel)}</span>
+            <span id="contact-phone-label-primary">${escapeHtml(currentPrimaryPhoneLabel)}</span>
           </a>
-          <a id="contact-phone-link-secondary" href="${currentSecondaryPhoneHref}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a id="contact-phone-link-secondary" href="${currentSecondaryPhoneHref}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="phone" class="w-4 h-4"></i>
-            <span id="contact-phone-label-secondary">${UI_TEXT.callLabel}: ${escapeHtml(currentSecondaryPhoneLabel)}</span>
+            <span id="contact-phone-label-secondary">${escapeHtml(currentSecondaryPhoneLabel)}</span>
           </a>
-          <a href="${RESERVE_EMAIL_HREF}" class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
+          <a id="contact-email-link" href="${currentReserveEmailHref}" class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-border bg-secondary text-secondary-foreground font-heading font-semibold text-sm tracking-wide hover:bg-accent transition-all">
             <i data-lucide="mail" class="w-4 h-4"></i>
-            ${UI_TEXT.emailLabel}
+            <span id="contact-email-label">${escapeHtml(currentContactEmailLabel)}</span>
           </a>
         </div>
       </div>
@@ -1813,12 +1836,16 @@ function initContactReserveModal() {
   const primaryPhoneLabel = document.getElementById("contact-phone-label-primary");
   const secondaryPhoneLink = document.getElementById("contact-phone-link-secondary");
   const secondaryPhoneLabel = document.getElementById("contact-phone-label-secondary");
+  const emailLink = document.getElementById("contact-email-link");
+  const emailLabel = document.getElementById("contact-email-label");
 
   const syncContactLinks = () => {
     if (primaryPhoneLink) primaryPhoneLink.href = currentPrimaryPhoneHref;
-    if (primaryPhoneLabel) primaryPhoneLabel.textContent = `${UI_TEXT.callLabel}: ${currentPrimaryPhoneLabel}`;
+    if (primaryPhoneLabel) primaryPhoneLabel.textContent = currentPrimaryPhoneLabel;
     if (secondaryPhoneLink) secondaryPhoneLink.href = currentSecondaryPhoneHref;
-    if (secondaryPhoneLabel) secondaryPhoneLabel.textContent = `${UI_TEXT.callLabel}: ${currentSecondaryPhoneLabel}`;
+    if (secondaryPhoneLabel) secondaryPhoneLabel.textContent = currentSecondaryPhoneLabel;
+    if (emailLink) emailLink.href = currentReserveEmailHref;
+    if (emailLabel) emailLabel.textContent = currentContactEmailLabel;
   };
 
   const openModal = () => {
@@ -1997,6 +2024,7 @@ function applyCmsPublishedContent(content) {
 window.SMCarsDemoAPI = {
   applyCmsPublishedContent,
   updateRuntimeContactPhones,
+  updateRuntimeContactEmail,
   applyPublicBookings(bookings) {
     publicBookings = Array.isArray(bookings) ? bookings : [];
     if (currentMainCategory) {

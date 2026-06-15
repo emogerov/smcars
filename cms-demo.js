@@ -197,22 +197,32 @@ function updatePhoneAndEmail(phone, secondPhone, email) {
   if (window.SMCarsDemoAPI?.updateRuntimeContactPhones) {
     window.SMCarsDemoAPI.updateRuntimeContactPhones(phone, secondPhone);
   }
+  if (window.SMCarsDemoAPI?.updateRuntimeContactEmail) {
+    window.SMCarsDemoAPI.updateRuntimeContactEmail(email);
+  }
   updatePhoneLink(document.getElementById("cms-phone-link"), phone);
   updatePhoneLink(document.getElementById("cms-second-phone-link"), secondPhone);
-
-  if (email) {
-    document.querySelectorAll("a[href^='mailto:']").forEach((link) => {
-      const suffix = link.href.includes("?") ? link.href.slice(link.href.indexOf("?")) : "";
-      link.href = `mailto:${email}${suffix}`;
-      link.textContent = email;
-    });
-  }
+  updateEmailLink(document.getElementById("cms-email-link"), email);
 }
 
 function updatePhoneLink(link, phone) {
   if (!link || !phone) return;
   link.href = `tel:${phone.replace(/\s+/g, "")}`;
-  link.textContent = phone;
+  link.textContent = formatPhoneDisplay(phone);
+}
+
+function updateEmailLink(link, email) {
+  if (!link || !email) return;
+  link.href = `mailto:${email}`;
+  link.textContent = email;
+}
+
+function formatPhoneDisplay(phone) {
+  const compact = String(phone || "").replace(/[^\d+]/g, "");
+  if (/^\+359\d{9}$/.test(compact)) {
+    return `${compact.slice(0, 4)} ${compact.slice(4, 6)} ${compact.slice(6, 9)} ${compact.slice(9)}`;
+  }
+  return String(phone || "").trim().replace(/\s+/g, " ");
 }
 
 function updateShuttleRoutes(routes, lang) {
