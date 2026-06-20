@@ -141,28 +141,33 @@ let carClasses = [
   },
 ];
 
+const CATEGORY_TRANSLATIONS = {
+  car: { label: "Cars", description: "Passenger vehicles for rent" },
+  motor: { label: "Motorcycles", description: "Two-wheel rental vehicles" },
+  truck: { label: "Cargo Vans", description: "Commercial vehicles for business needs" },
+};
+
+const CLASS_TRANSLATIONS = {
+  low: { label: "Low class", description: "Economic and practical vehicles" },
+  middle: { label: "Middle class", description: "Balance between comfort and price" },
+  high: { label: "High class", description: "Premium vehicles for maximum comfort" },
+};
+
+function localizeCategoryRecord(category) {
+  if (!IS_EN) return category;
+  const translated = CATEGORY_TRANSLATIONS[category.key];
+  return translated ? { ...category, ...translated } : category;
+}
+
+function localizeCarClassRecord(carClass) {
+  if (!IS_EN) return carClass;
+  const translated = CLASS_TRANSLATIONS[carClass.key];
+  return translated ? { ...carClass, ...translated } : carClass;
+}
+
 if (IS_EN) {
-  const categoryTranslations = {
-    car: { label: "Cars", description: "Passenger vehicles for rent" },
-    motor: { label: "Motorcycles", description: "Two-wheel rental vehicles" },
-    truck: { label: "Cargo Vans", description: "Commercial vehicles for business needs" },
-  };
-
-  const classTranslations = {
-    low: { label: "Low class", description: "Economic and practical vehicles" },
-    middle: { label: "Middle class", description: "Balance between comfort and price" },
-    high: { label: "High class", description: "Premium vehicles for maximum comfort" },
-  };
-
-  categories.forEach((category) => {
-    const translated = categoryTranslations[category.key];
-    if (translated) Object.assign(category, translated);
-  });
-
-  carClasses.forEach((carClass) => {
-    const translated = classTranslations[carClass.key];
-    if (translated) Object.assign(carClass, translated);
-  });
+  categories = categories.map(localizeCategoryRecord);
+  carClasses = carClasses.map(localizeCarClassRecord);
 }
 
 function resolveAssetPath(path) {
@@ -1975,14 +1980,14 @@ function applyCmsPublishedContent(content) {
   if (!content || typeof content !== "object") return;
 
   if (Array.isArray(content.categories) && content.categories.length) {
-    categories = content.categories.map((item) => ({
+    categories = content.categories.map((item) => localizeCategoryRecord({
       ...item,
       image: resolveAssetPath(item.image),
     }));
   }
 
   if (Array.isArray(content.carClasses) && content.carClasses.length) {
-    carClasses = content.carClasses.map((item) => ({
+    carClasses = content.carClasses.map((item) => localizeCarClassRecord({
       ...item,
       image: resolveAssetPath(item.image),
     }));
